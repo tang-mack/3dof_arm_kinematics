@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include "planar_arm_kinematics/kinematics.hpp"
+#include "planar_arm_kinematics/core/kinematics.h"
+#include "planar_arm_kinematics/core/custom_solver.h"
 
 using namespace planar_arm;
 
