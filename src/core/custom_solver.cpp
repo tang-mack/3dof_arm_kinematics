@@ -41,7 +41,7 @@ JointAnglesRad CustomSolver::inverse_kinematics(const Pose_XY_Yaw& end_effector_
     double y_wrist = y - l3_ * std::sin(yaw);
 
     double arccos_input = (x_wrist*x_wrist + y_wrist*y_wrist - l1_*l1_ - l2_*l2_) / (2 * l1_ * l2_);
-    std::clamp(arccos_input, -1.0, 1.0); // If the input to arccos is beyond -1.0 to 1.0, std::acos will return NaN, possibly causing issues.
+    arccos_input = std::clamp(arccos_input, -1.0, 1.0); // If the input to arccos is beyond -1.0 to 1.0, std::acos will return NaN, possibly causing issues.
 
     // arc cosine returns two values. std::acos returns the principal value (0 to pi). The second solution is given by -std::acos
     double theta_2_sol1 = std::acos(arccos_input); // Elbow down
@@ -56,7 +56,7 @@ JointAnglesRad CustomSolver::inverse_kinematics(const Pose_XY_Yaw& end_effector_
     }
 
     // Solve for theta_1 using theta_2
-    double theta_1 = std::atan2(y_wrist, x_wrist) - std::atan2(l2_*std::sin(theta_2), l2_*std::cos(theta_2));
+    double theta_1 = std::atan2(y_wrist, x_wrist) - std::atan2(l2_*std::sin(theta_2), l1_+l2_*std::cos(theta_2));
 
     // Solve for theta_3
     double theta_3 = yaw - theta_1 - theta_2;

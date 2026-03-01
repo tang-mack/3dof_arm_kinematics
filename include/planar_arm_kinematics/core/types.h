@@ -4,7 +4,7 @@
 
 namespace planar_arm {
 
-    // 1. Define Data Types
+    // --- Define Data Types ---
     struct Pose_XY_Yaw {
         double x{0.0};   // [m] x-position with respect to world frame
         double y{0.0};   // [m] y-position with respect to world frame
