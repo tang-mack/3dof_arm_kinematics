@@ -61,7 +61,8 @@ TEST(KinematicsTest, CadValidationPoints) {
     // --- Large Table of CAD Ground Truth Point Tests ---
     std::vector<CadDataPoint> cad_points = {
         // t1 (deg), t2 (deg), t3 (deg), X (m),         Y (m),        Yaw (deg)
-        { 17.0,      60.0,     -70.0,    453.631e-3,    392.209e-3,   7.0}
+        { 17.0,      60.0,     -70.0,    453.631e-3,    392.209e-3,   7.0},
+        { -17.0,      60.0,     -70.0,    595.39819e-3,    71.48895e-3,   -27.0}
         // Add more rows here...
     };
 
@@ -104,7 +105,8 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
     // --- Large Table of CAD Ground Truth Point Tests ---
     std::vector<CadDataPoint> cad_points = {
         // t1 (deg), t2 (deg), t3 (deg), X (m),         Y (m),        Yaw (deg)
-        { 17.0,      60.0,     -70.0,    453.631e-3,    392.209e-3,   7.0}
+        { 17.0,      60.0,     -70.0,    453.631e-3,    392.209e-3,   7.0},
+        { -17.0,      60.0,     -70.0,    595.39819e-3,    71.48895e-3,   -27.0}
         // Add more rows here...
     };
 
