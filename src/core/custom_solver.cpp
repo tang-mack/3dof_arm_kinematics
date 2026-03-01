@@ -30,7 +30,7 @@ double CustomSolver::wrap_to_pi(const double angle) const {
 }
 
 JointAnglesRad CustomSolver::inverse_kinematics(const Pose_XY_Yaw& end_effector_target, const double guess_elbow_joint) const {
-    std::cout << "[CustomSolver] inverse_kinematics called" << std::endl;
+    // std::cout << "[CustomSolver] inverse_kinematics called" << std::endl;
 
     double x = end_effector_target.x;
     double y = end_effector_target.y;

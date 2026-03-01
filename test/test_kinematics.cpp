@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include "planar_arm_kinematics/core/kinematics.h"
 #include "planar_arm_kinematics/core/custom_solver.h"
-
 #include <cmath>
 #include <vector>
+#include <random>
 
 using namespace planar_arm;
 
@@ -121,6 +121,7 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
         JointAnglesRad calculated_joints = cad_solver.inverse_kinematics(target_pose, elbow_guess);
         
         // Use EXPECT_NEAR with a 1e-4 radian tolerance (approx 0.005 degrees) for floating-point IK comparisons
+        // Rationale: 1e-4 is smaller than many encoder errors
         EXPECT_NEAR(calculated_joints[0], deg2rad(pt.t1_deg), 1e-4) 
             << "IK Theta 1 failed at table index " << i;
             
@@ -129,6 +130,46 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
             
         EXPECT_NEAR(calculated_joints[2], deg2rad(pt.t3_deg), 1e-4) 
             << "IK Theta 3 failed at table index " << i;
+    }
+}
+
+// Test 5: Automated Randomized Forward/Inverse Kinematics Cycle
+// Take random joint angles falling within joint limits,
+// run forward kinematics to get a ee pose, then run inverse kinematics
+// to get a joint angle again. Compare new joint angle with original.
+TEST(KinematicsTest, RandomizedFkIkCycle) {
+    CustomSolver solver(0.3, 0.3, 0.1);
+
+    // Set a fixed seed for reproducible test results across different environments
+    std::mt19937 gen(42);
+    
+    // Distribution range: -178 to +178 degrees (in radians)
+    // Rationale: if the FK/IK works on a very large joint limit range, it should work for smaller ones too.
+    std::uniform_real_distribution<double> dist_joint_1(deg2rad(-178.0), deg2rad(178.0));
+    std::uniform_real_distribution<double> dist_joint_2(deg2rad(-178.0), deg2rad(178.0));
+    std::uniform_real_distribution<double> dist_joint_3(deg2rad(-178.0), deg2rad(178.0));
+
+    const int num_iterations = 10000;
+
+    for (int i = 0; i < num_iterations; ++i) {
+        // 1. Generate random joint angles
+        JointAnglesRad original_joints = {dist_joint_1(gen), dist_joint_2(gen), dist_joint_3(gen)};
+
+        // 2. Compute Forward Kinematics to get a valid, reachable target pose
+        Pose_XY_Yaw ee_pose = solver.forward_kinematics(original_joints);
+
+        // 3. Compute Inverse Kinematics
+        // The original elbow joint is passed as the guess to force the solver
+        // (if we had elbow-up vs. down, we want to get the same out).
+        JointAnglesRad calculated_joints = solver.inverse_kinematics(ee_pose, original_joints[1]);
+
+        // 4. Validate the output matches the input
+        EXPECT_NEAR(calculated_joints[0], original_joints[0], 1e-4) 
+            << "Joint 0 mismatch at iteration " << i;
+        EXPECT_NEAR(calculated_joints[1], original_joints[1], 1e-4) 
+            << "Joint 1 mismatch at iteration " << i;
+        EXPECT_NEAR(calculated_joints[2], original_joints[2], 1e-4) 
+            << "Joint 2 mismatch at iteration " << i;
     }
 }
 
