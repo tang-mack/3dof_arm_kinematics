@@ -2,6 +2,8 @@
 #include "planar_arm_kinematics/core/kinematics.h"
 #include "planar_arm_kinematics/core/custom_solver.h"
 
+#include <cmath>
+
 using namespace planar_arm;
 
 // Test 1: Forward Kinematics at Zero Configuration
@@ -27,7 +29,7 @@ TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
     // Target the fully extended position
     Pose_XY_Yaw target{0.7, 0.0, 0.0};
     
-    JointAnglesRad joints = solver.inverse_kinematics(target);
+    JointAnglesRad joints = solver.inverse_kinematics(target, 30.0*M_PI/180.0);
     
     // The angles required to reach this should all be 0.0
     EXPECT_DOUBLE_EQ(joints[0], 0.0);

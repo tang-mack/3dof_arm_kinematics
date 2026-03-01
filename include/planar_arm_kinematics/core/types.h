@@ -11,6 +11,6 @@ namespace planar_arm {
         double yaw{0.0}; // [rad] Yaw about world frame z-axis
     };
 
-    using JointAnglesRad = std::array<double, 3>; // [rad]
+    using JointAnglesRad = std::array<double, 3>; // [rad] Joint angles, theta_1, theta_2, theta_3
     
 } // namespace planar_arm

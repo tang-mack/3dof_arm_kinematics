@@ -15,10 +15,10 @@ Pose_XY_Yaw Kinematics<SolverPolicy>::compute_fk(const JointAnglesRad& joint_ang
 }
 
 template <typename SolverPolicy>
-JointAnglesRad Kinematics<SolverPolicy>::compute_ik(const Pose_XY_Yaw& target) const {
+JointAnglesRad Kinematics<SolverPolicy>::compute_ik(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
     // Pass straight through to the backend
-    // return solver_.inverse_kinematics(target);
-    return JointAnglesRad{-99.0, -99.0, -99.0};
+    return solver_.inverse_kinematics(target, guess_elbow_joint);
+    // return JointAnglesRad{-99.0, -99.0, -99.0};
 }
 
 // ==============================================================================

@@ -15,6 +15,7 @@ private:
 
     rclcpp::Subscription<geometry_msgs::msg::Pose2D>::SharedPtr subscription_;
     ActiveKinematics kinematics_;
+    JointAnglesRad previous_joints_;
 };
 
 } // namespace planar_arm

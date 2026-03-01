@@ -10,17 +10,16 @@ IkSubscriberNode::IkSubscriberNode() : Node("ik_subscriber_node"),
 }
 
 void IkSubscriberNode::pose_callback(const geometry_msgs::msg::Pose2D::SharedPtr msg) {
-    // 1. Convert ROS message back into our custom C++ struct
+    // Convert ROS message back into our custom C++ struct
     Pose_XY_Yaw target_pose{msg->x, msg->y, msg->theta};
 
-    // 2. Call our pure Non ROS C++ API
-    JointAnglesRad computed_joints = kinematics_.compute_ik(target_pose);
+    // Call pure Non ROS C++ API
+    JointAnglesRad computed_joints = kinematics_.compute_ik(target_pose, previous_joints_[1]); // guess with previous elbow
 
-    // 3. Mock override as requested
-    computed_joints = {-99.0, -99.0, -99.0};
+    previous_joints_ = computed_joints; // Update previous joints
 
-    // 4. Print the result
-    RCLCPP_INFO(this->get_logger(), "IK Node Received Pose. Mocked Angles -> t1: %.2f, t2: %.2f, t3: %.2f", 
+    // Print the result
+    RCLCPP_INFO(this->get_logger(), "IK Node Received Pose. Output Angles -> t1: %.2f, t2: %.2f, t3: %.2f", 
                 computed_joints[0], computed_joints[1], computed_joints[2]);
 }
 
