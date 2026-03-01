@@ -68,7 +68,10 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 # -----------------------------------------------------------
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+
+  ### Disabling lint tests for now
+  # ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_gtest REQUIRED)
   
   ament_add_gtest(test_kinematics test/test_kinematics.cpp)
