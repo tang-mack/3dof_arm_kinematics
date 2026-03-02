@@ -1,15 +1,26 @@
+import os
+from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # 1. Declare the arguments so they can be passed via command line
+    # 1. Dynamically locate the yaml config file
+    #    This MUST be inside generate_launch_description and before the Nodes
+    config_file = os.path.join(
+        get_package_share_directory('planar_arm_kinematics'),
+        'config',
+        'kinematics.yaml'
+    )
+
+    # 2. Declare the arguments so they can be passed via command line
     theta1_arg = DeclareLaunchArgument('theta1', default_value='0.0', description='Joint angle 1 (rad)')
     theta2_arg = DeclareLaunchArgument('theta2', default_value='0.0', description='Joint angle 2 (rad)')
     theta3_arg = DeclareLaunchArgument('theta3', default_value='0.0', description='Joint angle 3 (rad)')
 
-    # 2. Define the FK Publisher Node
+    # 3. Define the FK Publisher Node
     fk_node = Node(
         package='planar_arm_kinematics',
         executable='fk_publisher_node',
@@ -23,7 +34,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 3. Define the IK Subscriber Node
+    # 4. Define the IK Subscriber Node
     ik_node = Node(
         package='planar_arm_kinematics',
         executable='ik_subscriber_node',
@@ -32,7 +43,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Return the complete description
+    # 5. Return the complete description
     return LaunchDescription([
         theta1_arg,
         theta2_arg,

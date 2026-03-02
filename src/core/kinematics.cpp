@@ -4,18 +4,18 @@
 namespace planar_arm {
 
 // Implementations
-template <typename SolverPolicy>
-Kinematics<SolverPolicy>::Kinematics(SolverPolicy solver) : solver_(solver) {}
+template <typename SolverBackend>
+Kinematics<SolverBackend>::Kinematics(SolverBackend solver) : solver_(solver) {}
 
-template <typename SolverPolicy>
-Pose_XY_Yaw Kinematics<SolverPolicy>::compute_fk(const JointAnglesRad& joint_angles_rad) const {
+template <typename SolverBackend>
+Pose_XY_Yaw Kinematics<SolverBackend>::compute_fk(const JointAnglesRad& joint_angles_rad) const {
     // Pass straight through to the backend
     return solver_.forward_kinematics(joint_angles_rad);
     // return Pose_XY_Yaw{0.0, 0.0, 0.0};
 }
 
-template <typename SolverPolicy>
-JointAnglesRad Kinematics<SolverPolicy>::compute_ik(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
+template <typename SolverBackend>
+JointAnglesRad Kinematics<SolverBackend>::compute_ik(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
     // Pass straight through to the backend
     return solver_.inverse_kinematics(target, guess_elbow_joint);
     // return JointAnglesRad{-99.0, -99.0, -99.0};
