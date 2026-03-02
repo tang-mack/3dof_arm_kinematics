@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "planar_arm_kinematics/core/kinematics.h"
-#include "planar_arm_kinematics/core/custom_solver.h"
-#include "planar_arm_kinematics/core/robot_model.h"
+#include "planar_arm_kinematics/core/Kinematics.h"
+#include "planar_arm_kinematics/core/AnalyticalSolver.h"
+#include "planar_arm_kinematics/core/RobotModel.h"
 #include <cmath>
 #include <vector>
 #include <random>
@@ -13,9 +13,9 @@ inline double deg2rad(double deg) {
     return deg * M_PI / 180.0;
 }
 
-// Helper function to generate a default CustomSolverConfig.
-CustomSolverConfig get_default_test_config() {
-    CustomSolverConfig config;
+// Helper function to generate a default AnalyticalSolverConfig.
+AnalyticalSolverConfig get_default_test_config() {
+    AnalyticalSolverConfig config;
     config.urdf_filepath = "dummy_path";
     config.parse_lengths_from = "urdf"; // Forces the solver to use the RobotModel lengths
     config.use_lookup_table_speedup = false;
@@ -27,8 +27,8 @@ CustomSolverConfig get_default_test_config() {
 TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
     // Instantiate with default lengths: L1=0.3, L2=0.3, L3=0.1
     RobotModel model(0.3, 0.3, 0.1);
-    CustomSolverConfig config = get_default_test_config();
-    CustomSolver solver(config, model);
+    AnalyticalSolverConfig config = get_default_test_config();
+    AnalyticalSolver solver(config, model);
     
     // Set all joint angles to 0.0 radians
     JointAnglesRad joints = {0.0, 0.0, 0.0};
@@ -44,8 +44,8 @@ TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
 // Test 2: Inverse Kinematics from the Zero Configuration
 TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
     RobotModel model(0.3, 0.3, 0.1);
-    CustomSolverConfig config = get_default_test_config();
-    CustomSolver solver(config, model);
+    AnalyticalSolverConfig config = get_default_test_config();
+    AnalyticalSolver solver(config, model);
     
     // Target the fully extended position
     Pose_XY_Yaw target{0.7, 0.0, 0.0};
@@ -62,8 +62,8 @@ TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
 TEST(KinematicsTest, CadValidationPoints) {
     // Instantiate using standard SI units (Meters)
     RobotModel model(0.3, 0.3, 0.1);
-    CustomSolverConfig config = get_default_test_config();
-    CustomSolver cad_solver(config, model);
+    AnalyticalSolverConfig config = get_default_test_config();
+    AnalyticalSolver cad_solver(config, model);
 
     // Struct to hold your giant table of numbers
     struct CadDataPoint {
@@ -108,8 +108,8 @@ TEST(KinematicsTest, CadValidationPoints) {
 TEST(KinematicsTest, InverseKinematicsCadValidation) {
     // Instantiate using standard SI units (Meters)
     RobotModel model(0.3, 0.3, 0.1);
-    CustomSolverConfig config = get_default_test_config();
-    CustomSolver solver(config, model);
+    AnalyticalSolverConfig config = get_default_test_config();
+    AnalyticalSolver solver(config, model);
 
     // Struct to hold CAD ground truth data points
     struct CadDataPoint {
@@ -159,8 +159,8 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
 // to get a joint angle again. Compare new joint angle with original.
 TEST(KinematicsTest, RandomizedFkIkCycle) {
     RobotModel model(0.3, 0.3, 0.1);
-    CustomSolverConfig config = get_default_test_config();
-    CustomSolver solver(config, model);
+    AnalyticalSolverConfig config = get_default_test_config();
+    AnalyticalSolver solver(config, model);
 
     // Set a fixed seed for reproducible test results across different environments
     std::mt19937 gen(42);

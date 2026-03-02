@@ -17,7 +17,7 @@ find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library
 # -----------------------------------------------------------
-add_library(core_kinematics src/core/custom_solver.cpp src/core/kinematics.cpp)
+add_library(core_kinematics src/core/AnalyticalSolver.cpp src/core/Kinematics.cpp)
 target_include_directories(core_kinematics PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -27,12 +27,12 @@ target_link_libraries(core_kinematics PUBLIC yaml-cpp) # Needed for YamlReader c
 # -----------------------------------------------------------
 # 2. Build the ROS Node Classes as Libraries (Component Ready)
 # -----------------------------------------------------------
-add_library(fk_publisher_lib src/ros/fk_publisher_node.cpp)
+add_library(fk_publisher_lib src/ros/FkPublisherNode.cpp)
 target_include_directories(fk_publisher_lib PUBLIC include)
 target_link_libraries(fk_publisher_lib core_kinematics)
 ament_target_dependencies(fk_publisher_lib rclcpp geometry_msgs std_msgs)
 
-add_library(ik_subscriber_lib src/ros/ik_subscriber_node.cpp)
+add_library(ik_subscriber_lib src/ros/IkSubscriberNode.cpp)
 target_include_directories(ik_subscriber_lib PUBLIC include)
 target_link_libraries(ik_subscriber_lib core_kinematics)
 ament_target_dependencies(ik_subscriber_lib rclcpp geometry_msgs std_msgs)

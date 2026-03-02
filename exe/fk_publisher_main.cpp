@@ -1,5 +1,5 @@
 #include <rclcpp/rclcpp.hpp>
-#include "planar_arm_kinematics/ros/fk_publisher_node.h"
+#include "planar_arm_kinematics/ros/FkPublisherNode.h"
 
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
