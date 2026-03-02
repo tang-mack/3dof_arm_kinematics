@@ -17,7 +17,7 @@ find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library
 # -----------------------------------------------------------
-add_library(core_kinematics src/core/AnalyticalSolver.cpp src/core/Kinematics.cpp)
+add_library(core_kinematics src/core/AnalyticalSolver.cpp)
 target_include_directories(core_kinematics PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
