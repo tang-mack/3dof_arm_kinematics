@@ -1,4 +1,5 @@
 #include "planar_arm_kinematics/ros/fk_publisher_node.h"
+#include "planar_arm_kinematics/core/robot_model.h"
 #include <chrono>
 
 using namespace std::chrono_literals;
@@ -7,7 +8,7 @@ namespace planar_arm {
 
 FkPublisherNode::FkPublisherNode() : Node("fk_publisher_node"), 
     // Initialize the backend solver with default link lengths (L1=0.3, L2=0.3, L3=0.1)
-    kinematics_(CustomSolver(0.3, 0.3, 0.1)) 
+    kinematics_(CustomSolver(this->declare_parameter<std::string>("yaml_filepath", ""), RobotModel(0.3, 0.3, 0.1))) 
 {
     // Declare the launch file parameters
     this->declare_parameter("theta1", 0.0);

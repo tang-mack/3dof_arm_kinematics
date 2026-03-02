@@ -18,6 +18,7 @@ def generate_launch_description():
             'theta1': LaunchConfiguration('theta1'),
             'theta2': LaunchConfiguration('theta2'),
             'theta3': LaunchConfiguration('theta3'),
+            'yaml_filepath': config_file,
         }],
         output='screen'
     )
@@ -27,6 +28,7 @@ def generate_launch_description():
         package='planar_arm_kinematics',
         executable='ik_subscriber_node',
         name='ik_subscriber_node',
+        parameters=[{'yaml_filepath': config_file}],
         output='screen'
     )
 

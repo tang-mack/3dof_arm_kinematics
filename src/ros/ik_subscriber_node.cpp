@@ -1,9 +1,10 @@
 #include "planar_arm_kinematics/ros/ik_subscriber_node.h"
+#include "planar_arm_kinematics/core/robot_model.h"
 
 namespace planar_arm {
 
 IkSubscriberNode::IkSubscriberNode() : Node("ik_subscriber_node"),
-    kinematics_(CustomSolver(0.3, 0.3, 0.1)) 
+    kinematics_(CustomSolver(this->declare_parameter<std::string>("yaml_filepath", ""), RobotModel(0.3, 0.3, 0.1))) 
 {
     subscription_ = this->create_subscription<geometry_msgs::msg::Pose2D>(
         "end_effector_pose", 10, std::bind(&IkSubscriberNode::pose_callback, this, std::placeholders::_1));

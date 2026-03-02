@@ -12,6 +12,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
 
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library
@@ -21,6 +22,7 @@ target_include_directories(core_kinematics PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(core_kinematics PUBLIC yaml-cpp) # Needed for YamlReader class
 
 # -----------------------------------------------------------
 # 2. Build the ROS Node Classes as Libraries (Component Ready)
@@ -62,6 +64,12 @@ install(TARGETS
 
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
+
+# Install the config folder containing yaml files to the ROS 2 share directory so the launch file can find it.
+# This is so yaml filepaths can be passed into the ROS node via the ROS launch files.
+install(DIRECTORY include/planar_arm_kinematics/config/ 
+  DESTINATION share/${PROJECT_NAME}/config
+)
 
 # -----------------------------------------------------------
 # 5. Testing

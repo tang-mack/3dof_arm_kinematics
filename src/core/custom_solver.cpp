@@ -6,9 +6,61 @@
 
 namespace planar_arm {
 
-// Custom Math Backend Implementation
-CustomSolver::CustomSolver(double l1, double l2, double l3)
-    : l1_(l1), l2_(l2), l3_(l3) {}
+// Constructor 1: Yaml-based constructor for typical usage
+CustomSolver::CustomSolver(const std::string& yaml_filepath, const RobotModel& robot_model)
+    : robot_model_(robot_model),
+    l1_(robot_model.L1),
+    l2_(robot_model.L2),
+    l3_(robot_model.L3) {
+        // load() will throw if yaml does not exist
+        yaml_reader_.load(yaml_filepath);
+
+        // 1. Parse Global Yaml Parameters (Stuff at "root" level of yaml file)
+        config_.urdf_filepath = yaml_reader_.get_global<std::string>("urdf_filepath");
+
+        // 2. Parse Local Yaml Parameters (ie. nested under CustomSolver within the yaml file)
+        config_.parse_lengths_from = yaml_reader_.get_local<std::string>("CustomSolver", "parse_lengths_from_urdf_vs_yaml");
+        config_.link_lengths = yaml_reader_.get_local<std::vector<double>>("CustomSolver", "link_lengths");
+        config_.use_lookup_table_speedup = yaml_reader_.get_local<bool>("CustomSolver", "use_lookup_table_speedup");
+
+        // Parse Joint Limits from Yaml
+        std::vector<std::vector<double>> default_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
+        config_.joint_limits = yaml_reader_.get_local<std::vector<std::vector<double>>>("CustomSolver", "joint_limits");
+
+        // YAML overrides URDF link lengths logic
+        if (config_.parse_lengths_from == "yaml") {
+            if (config_.link_lengths.size() == 3) {
+                l1_ = config_.link_lengths[0];
+                l2_ = config_.link_lengths[1];
+                l3_ = config_.link_lengths[2];
+            } else {
+                throw std::runtime_error("[CustomSolver] YAML link_lengths must contain exactly 3 values.");
+            }
+        }
+        
+        std::cout << "[CustomSolver] Configuration loaded successfully." << std::endl;
+
+    }
+
+    // Constructor 2: Struct-based constructor mainly for Unit Tests
+    CustomSolver::CustomSolver(const CustomSolverConfig& config, const RobotModel& robot_model)
+        : robot_model_(robot_model),
+          l1_(robot_model.L1),
+          l2_(robot_model.L2),
+          l3_(robot_model.L3),
+          config_(config)
+    {
+        // YAML overrides URDF link lengths logic
+        if (config_.parse_lengths_from == "yaml") {
+            if (config_.link_lengths.size() == 3) {
+                l1_ = config_.link_lengths[0];
+                l2_ = config_.link_lengths[1];
+                l3_ = config_.link_lengths[2];
+            } else {
+                throw std::runtime_error("[CustomSolver] Config link_lengths must contain exactly 3 values.");
+            }
+        }
+    }
 
 Pose_XY_Yaw CustomSolver::forward_kinematics(const JointAnglesRad& joint_angles) const {
 

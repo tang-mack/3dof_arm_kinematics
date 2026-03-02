@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "planar_arm_kinematics/core/kinematics.h"
 #include "planar_arm_kinematics/core/custom_solver.h"
+#include "planar_arm_kinematics/core/robot_model.h"
 #include <cmath>
 #include <vector>
 #include <random>
@@ -12,10 +13,22 @@ inline double deg2rad(double deg) {
     return deg * M_PI / 180.0;
 }
 
+// Helper function to generate a default CustomSolverConfig.
+CustomSolverConfig get_default_test_config() {
+    CustomSolverConfig config;
+    config.urdf_filepath = "dummy_path";
+    config.parse_lengths_from = "urdf"; // Forces the solver to use the RobotModel lengths
+    config.use_lookup_table_speedup = false;
+    config.joint_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
+    return config;
+}
+
 // Test 1: Forward Kinematics at Zero Configuration
 TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
     // Instantiate with default lengths: L1=0.3, L2=0.3, L3=0.1
-    CustomSolver solver(0.3, 0.3, 0.1);
+    RobotModel model(0.3, 0.3, 0.1);
+    CustomSolverConfig config = get_default_test_config();
+    CustomSolver solver(config, model);
     
     // Set all joint angles to 0.0 radians
     JointAnglesRad joints = {0.0, 0.0, 0.0};
@@ -30,7 +43,9 @@ TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
 
 // Test 2: Inverse Kinematics from the Zero Configuration
 TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
-    CustomSolver solver(0.3, 0.3, 0.1);
+    RobotModel model(0.3, 0.3, 0.1);
+    CustomSolverConfig config = get_default_test_config();
+    CustomSolver solver(config, model);
     
     // Target the fully extended position
     Pose_XY_Yaw target{0.7, 0.0, 0.0};
@@ -46,7 +61,9 @@ TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
 // Test 3: CAD Ground Truth Validation, Single Points (Table Format)
 TEST(KinematicsTest, CadValidationPoints) {
     // Instantiate using standard SI units (Meters)
-    CustomSolver cad_solver(0.3, 0.3, 0.1);
+    RobotModel model(0.3, 0.3, 0.1);
+    CustomSolverConfig config = get_default_test_config();
+    CustomSolver cad_solver(config, model);
 
     // Struct to hold your giant table of numbers
     struct CadDataPoint {
@@ -90,7 +107,9 @@ TEST(KinematicsTest, CadValidationPoints) {
 // Test 4: Inverse Kinematics CAD Ground Truth Validation
 TEST(KinematicsTest, InverseKinematicsCadValidation) {
     // Instantiate using standard SI units (Meters)
-    CustomSolver cad_solver(0.3, 0.3, 0.1);
+    RobotModel model(0.3, 0.3, 0.1);
+    CustomSolverConfig config = get_default_test_config();
+    CustomSolver solver(config, model);
 
     // Struct to hold CAD ground truth data points
     struct CadDataPoint {
@@ -118,7 +137,7 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
         
         // Pass the expected elbow angle as the guess to ensure the solver selects the matching configuration
         double elbow_guess = deg2rad(pt.t2_deg);
-        JointAnglesRad calculated_joints = cad_solver.inverse_kinematics(target_pose, elbow_guess);
+        JointAnglesRad calculated_joints = solver.inverse_kinematics(target_pose, elbow_guess);
         
         // Use EXPECT_NEAR with a 1e-4 radian tolerance (approx 0.005 degrees) for floating-point IK comparisons
         // Rationale: 1e-4 is smaller than many encoder errors
@@ -134,11 +153,14 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
 }
 
 // Test 5: Automated Randomized Forward/Inverse Kinematics Cycle
+//
 // Take random joint angles falling within joint limits,
-// run forward kinematics to get a ee pose, then run inverse kinematics
+// run forward kinematics to get an ee pose, then run inverse kinematics
 // to get a joint angle again. Compare new joint angle with original.
 TEST(KinematicsTest, RandomizedFkIkCycle) {
-    CustomSolver solver(0.3, 0.3, 0.1);
+    RobotModel model(0.3, 0.3, 0.1);
+    CustomSolverConfig config = get_default_test_config();
+    CustomSolver solver(config, model);
 
     // Set a fixed seed for reproducible test results across different environments
     std::mt19937 gen(42);
