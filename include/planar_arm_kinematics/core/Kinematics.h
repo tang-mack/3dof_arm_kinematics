@@ -6,7 +6,7 @@
 
 namespace planar_arm {
 
-template <typename SolverBackend>
+template <typename SolverBackend> // Possible SolverBackends: AnalyticalSolver, PinocchioSolver
 class Kinematics {
 public:
     explicit Kinematics(SolverBackend solver) : solver_(solver) {};
