@@ -8,7 +8,7 @@ namespace planar_arm {
 
 FkPublisherNode::FkPublisherNode() : Node("fk_publisher_node"), 
     // Initialize the backend solver with default link lengths (L1=0.3, L2=0.3, L3=0.1)
-    kinematics_(AnalyticalSolver(this->declare_parameter<std::string>("yaml_filepath", ""), RobotModel(0.3, 0.3, 0.1))) 
+    kinematics_(ActiveSolverBackend(this->declare_parameter<std::string>("yaml_filepath", ""))) 
 {
     // Declare the launch file parameters
     this->declare_parameter("theta1", 0.0);

@@ -6,6 +6,13 @@
 
 namespace planar_arm {
 
+// ==========================================================
+// COMPILE-TIME SOLVER SELECTION
+// Change 'AnalyticalSolver' to 'PinocchioSolver' to switch backends
+using ActiveSolverBackend = AnalyticalSolver; 
+// using ActiveSolverBackend = PinocchioSolver; 
+// ==========================================================
+
 class FkPublisherNode : public rclcpp::Node {
 public:
     FkPublisherNode();
@@ -17,7 +24,7 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     // Instantiate our templated kinematics API
-    ActiveKinematics kinematics_; // Pick between math solver backends
+    Kinematics<ActiveSolverBackend> kinematics_; // Pick between math solver backends
 };
 
 } // namespace planar_arm

@@ -23,7 +23,7 @@ public:
 
     // Fetches top-level yaml keys (just the "root level" content in the yaml file without any indentation)
     template <typename T>
-    T get_global(const std::string& key) const {
+    T get_global_param(const std::string& key) const {
         if (root_node_[key]) {
             return root_node_[key].as<T>();
         }
@@ -32,7 +32,7 @@ public:
 
     // Fetches nested yaml keys, for example if AnalyticalSolver is at root level, and we need indented values (e.g., AnalyticalSolver -> use_lookup_table_speedup)
     template <typename T>
-    T get_local(const std::string& class_namespace, const std::string& key) const {
+    T get_class_specific_param(const std::string& class_namespace, const std::string& key) const {
         if (root_node_[class_namespace] && root_node_[class_namespace][key]) {
             return root_node_[class_namespace][key].as<T>();
         }

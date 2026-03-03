@@ -6,6 +6,13 @@
 
 namespace planar_arm {
 
+// ==========================================================
+// COMPILE-TIME SOLVER SELECTION
+// Change 'AnalyticalSolver' to 'PinocchioSolver' to switch backends
+using ActiveSolverBackend = AnalyticalSolver; 
+// using ActiveSolverBackend = PinocchioSolver; 
+// ==========================================================
+
 class IkSubscriberNode : public rclcpp::Node {
 public:
     IkSubscriberNode();
@@ -14,7 +21,7 @@ private:
     void pose_callback(const geometry_msgs::msg::Pose2D::SharedPtr msg);
 
     rclcpp::Subscription<geometry_msgs::msg::Pose2D>::SharedPtr subscription_;
-    ActiveKinematics kinematics_;
+    Kinematics<ActiveSolverBackend> kinematics_;
     JointAnglesRad previous_joints_;
 };
 

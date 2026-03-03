@@ -3,73 +3,93 @@
 
 #include <algorithm> // for std::clamp
 #include <iostream>
+#include <planar_arm_kinematics/core/MiniURDFParser.h>
+#include <filesystem> // for getting URDF filepath
 
 namespace planar_arm {
 
 // Constructor 1: Yaml-based constructor for typical usage
-AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath, const RobotModel& robot_model)
-    : robot_model_(robot_model),
-    l1_(robot_model.L1),
-    l2_(robot_model.L2),
-    l3_(robot_model.L3) {
-        // load() will throw if yaml does not exist
-        yaml_reader_.load(yaml_filepath);
-
-        // 1. Parse Global Yaml Parameters (Stuff at "root" level of yaml file)
-        config_.urdf_filepath = yaml_reader_.get_global<std::string>("urdf_filepath");
-
-        // 2. Parse Local Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
-        config_.parse_lengths_from = yaml_reader_.get_local<std::string>("AnalyticalSolver", "parse_lengths_from_urdf_vs_yaml");
-        config_.link_lengths = yaml_reader_.get_local<std::vector<double>>("AnalyticalSolver", "link_lengths");
-        config_.use_lookup_table_speedup = yaml_reader_.get_local<bool>("AnalyticalSolver", "use_lookup_table_speedup");
-
-        // Parse Joint Limits from Yaml
-        std::vector<std::vector<double>> default_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
-        config_.joint_limits = yaml_reader_.get_local<std::vector<std::vector<double>>>("AnalyticalSolver", "joint_limits");
-
-        // YAML overrides URDF link lengths logic
-        if (config_.parse_lengths_from == "yaml") {
-            if (config_.link_lengths.size() == 3) {
-                l1_ = config_.link_lengths[0];
-                l2_ = config_.link_lengths[1];
-                l3_ = config_.link_lengths[2];
-            } else {
-                throw std::runtime_error("[AnalyticalSolver] YAML link_lengths must contain exactly 3 values.");
-            }
-        }
+AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
         
-        std::cout << "[AnalyticalSolver] Configuration loaded successfully." << std::endl;
+    yaml_reader_.load(yaml_filepath); // load() will throw if yaml does not exist
 
+    // 1. Parse Class-specific Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
+    config_.link_length_source = yaml_reader_.get_class_specific_param<std::string>("AnalyticalSolver", "link_length_source"); // "urdf" or "yaml"
+    config_.link_lengths = yaml_reader_.get_class_specific_param<std::vector<double>>("AnalyticalSolver", "link_lengths");
+    config_.use_lookup_table_speedup = yaml_reader_.get_class_specific_param<bool>("AnalyticalSolver", "use_lookup_table_speedup");
+
+    // 2. Get URDF filepath if we're using it, std::nullopt otherwise
+    if (config_.link_length_source == "urdf") {
+        config_.urdf_filepath = yaml_reader_.get_global_param<std::string>("urdf_filepath");
+    }
+    else if (config_.link_length_source == "yaml") {
+        config_.urdf_filepath = std::nullopt;
+    }
+    else {
+        throw std::runtime_error("[AnalyticalSolver] YAML link_length_source must be urdf or yaml.");
     }
 
-    // Constructor 2: Struct-based constructor mainly for Unit Tests
-    AnalyticalSolver::AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& robot_model)
-        : robot_model_(robot_model),
-          l1_(robot_model.L1),
-          l2_(robot_model.L2),
-          l3_(robot_model.L3),
-          config_(config)
-    {
-        // YAML overrides URDF link lengths logic
-        if (config_.parse_lengths_from == "yaml") {
-            if (config_.link_lengths.size() == 3) {
-                l1_ = config_.link_lengths[0];
-                l2_ = config_.link_lengths[1];
-                l3_ = config_.link_lengths[2];
-            } else {
-                throw std::runtime_error("[AnalyticalSolver] Config link_lengths must contain exactly 3 values.");
-            }
+    // Parse Joint Limits from Yaml
+    std::vector<std::vector<double>> default_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
+    config_.joint_limits = yaml_reader_.get_class_specific_param<std::vector<std::vector<double>>>("AnalyticalSolver", "joint_limits");
+
+    std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
+
+    // YAML overrides URDF link lengths logic
+    if (config_.link_length_source == "yaml") {
+        if (config_.link_lengths.size() == 3) {
+
+            model_ = RobotModel(config_.link_lengths);
+
+        } else {
+            throw std::runtime_error("[AnalyticalSolver] YAML link_lengths must contain exactly 3 values.");
         }
     }
+    // URDF provides link lengths
+    else if (config_.link_length_source == "urdf") {
+        // --- PATH RESOLUTION WITHOUT ROS ---
+        // 1. Get the directory containing the YAML file
+        std::filesystem::path yaml_dir = std::filesystem::path(yaml_filepath).parent_path();
+        
+        // 2. Append the relative URDF path from the YAML config
+        std::filesystem::path absolute_urdf_path = yaml_dir / config_.urdf_filepath.value();
+        
+        std::cout << "[AnalyticalSolver] Resolved absolute URDF path: " << absolute_urdf_path << std::endl;
+        
+        // 3. Pass the absolute string to the parser
+        auto lengths = MiniURDFParser::parse_link_lengths(absolute_urdf_path.string());
+        // ---------------------------------
+
+        if (lengths.size() != 3) {
+            throw std::runtime_error("[AnayticalSolver] URDF must provide exactly 3 link lengths, " + std::to_string(lengths.size()) + " were provided.");
+        }
+
+        model_ = RobotModel(lengths); // Set lengths based on URDF
+
+        model_.print_link_lengths();
+    }
+    
+}
+
+// Constructor 2: Struct-based constructor mainly for Unit Tests
+AnalyticalSolver::AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model)
+    : config_(config), model_(model)
+{
+    // Do nothing
+}
 
 Pose_XY_Yaw AnalyticalSolver::forward_kinematics(const JointAnglesRad& joint_angles) const {
+
+    double L1 = model_.get_length(0);
+    double L2 = model_.get_length(1);
+    double L3 = model_.get_length(2);
 
     double q1 = joint_angles.at(0);
     double q2 = joint_angles.at(1);
     double q3 = joint_angles.at(2);
 
-    double x = l1_ * std::cos(q1) + l2_ * std::cos(q1 + q2) + l3_ * std::cos(q1 + q2 + q3);
-    double y = l1_ * std::sin(q1) + l2_ * std::sin(q1 + q2) + l3_ * std::sin(q1 + q2 + q3);
+    double x = L1 * std::cos(q1) + L2 * std::cos(q1 + q2) + L3 * std::cos(q1 + q2 + q3);
+    double y = L1 * std::sin(q1) + L2 * std::sin(q1 + q2) + L3 * std::sin(q1 + q2 + q3);
     double theta = q1 + q2 + q3;
 
     Pose_XY_Yaw pose{x, y, theta};
@@ -84,15 +104,19 @@ double AnalyticalSolver::wrap_to_pi(const double angle) const {
 JointAnglesRad AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& end_effector_target, const double guess_elbow_joint) const {
     // std::cout << "[AnalyticalSolver] inverse_kinematics called" << std::endl;
 
+    double L1 = model_.get_length(0);
+    double L2 = model_.get_length(1);
+    double L3 = model_.get_length(2);
+
     double x = end_effector_target.x;
     double y = end_effector_target.y;
     double yaw = end_effector_target.yaw;
 
     // Trick: solve wrist first
-    double x_wrist = x - l3_ * std::cos(yaw);
-    double y_wrist = y - l3_ * std::sin(yaw);
+    double x_wrist = x - L3 * std::cos(yaw);
+    double y_wrist = y - L3 * std::sin(yaw);
 
-    double arccos_input = (x_wrist*x_wrist + y_wrist*y_wrist - l1_*l1_ - l2_*l2_) / (2 * l1_ * l2_);
+    double arccos_input = (x_wrist*x_wrist + y_wrist*y_wrist - L1*L1 - L2*L2) / (2 * L1 * L2);
     arccos_input = std::clamp(arccos_input, -1.0, 1.0); // If the input to arccos is beyond -1.0 to 1.0, std::acos will return NaN, possibly causing issues.
 
     // arc cosine returns two values. std::acos returns the principal value (0 to pi). The second solution is given by -std::acos
@@ -108,7 +132,7 @@ JointAnglesRad AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& end_effec
     }
 
     // Solve for theta_1 using theta_2
-    double theta_1 = std::atan2(y_wrist, x_wrist) - std::atan2(l2_*std::sin(theta_2), l1_+l2_*std::cos(theta_2));
+    double theta_1 = std::atan2(y_wrist, x_wrist) - std::atan2(L2*std::sin(theta_2), L1+L2*std::cos(theta_2));
 
     // Solve for theta_3
     double theta_3 = yaw - theta_1 - theta_2;

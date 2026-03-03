@@ -13,16 +13,17 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
+find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
 
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library
 # -----------------------------------------------------------
-add_library(core_kinematics src/core/AnalyticalSolver.cpp)
+add_library(core_kinematics src/core/AnalyticalSolver.cpp src/core/PinocchioSolver.cpp src/core/MiniURDFParser.cpp)
 target_include_directories(core_kinematics PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(core_kinematics PUBLIC yaml-cpp) # Needed for YamlReader class
+target_link_libraries(core_kinematics PUBLIC yaml-cpp tinyxml2::tinyxml2) # Needed for YamlReader class, MiniURDFParser class
 
 # -----------------------------------------------------------
 # 2. Build the ROS Node Classes as Libraries (Component Ready)
@@ -82,8 +83,12 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
   
-  ament_add_gtest(test_kinematics test/test_kinematics.cpp)
-  target_link_libraries(test_kinematics core_kinematics)
+  ament_add_gtest(test_AnalyticalSolver test/test_AnalyticalSolver.cpp)
+  target_link_libraries(test_AnalyticalSolver core_kinematics)
+
+  ament_add_gtest(test_PinocchioSolver test/test_PinocchioSolver.cpp)
+  target_link_libraries(test_PinocchioSolver core_kinematics)
+
 endif()
 
 ament_package()

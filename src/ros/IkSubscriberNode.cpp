@@ -4,7 +4,7 @@
 namespace planar_arm {
 
 IkSubscriberNode::IkSubscriberNode() : Node("ik_subscriber_node"),
-    kinematics_(AnalyticalSolver(this->declare_parameter<std::string>("yaml_filepath", ""), RobotModel(0.3, 0.3, 0.1))) 
+    kinematics_(ActiveSolverBackend(this->declare_parameter<std::string>("yaml_filepath", ""))) 
 {
     subscription_ = this->create_subscription<geometry_msgs::msg::Pose2D>(
         "end_effector_pose", 10, std::bind(&IkSubscriberNode::pose_callback, this, std::placeholders::_1));

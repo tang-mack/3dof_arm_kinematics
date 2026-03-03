@@ -17,7 +17,7 @@ inline double deg2rad(double deg) {
 AnalyticalSolverConfig get_default_test_config() {
     AnalyticalSolverConfig config;
     config.urdf_filepath = "dummy_path";
-    config.parse_lengths_from = "urdf"; // Forces the solver to use the RobotModel lengths
+    config.link_length_source = ""; // Forces the solver to use the RobotModel lengths
     config.use_lookup_table_speedup = false;
     config.joint_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
     return config;
@@ -26,7 +26,7 @@ AnalyticalSolverConfig get_default_test_config() {
 // Test 1: Forward Kinematics at Zero Configuration
 TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
     // Instantiate with default lengths: L1=0.3, L2=0.3, L3=0.1
-    RobotModel model(0.3, 0.3, 0.1);
+    RobotModel model({0.3, 0.3, 0.1});
     AnalyticalSolverConfig config = get_default_test_config();
     AnalyticalSolver solver(config, model);
     
@@ -43,7 +43,7 @@ TEST(KinematicsTest, ForwardKinematicsZeroAngles) {
 
 // Test 2: Inverse Kinematics from the Zero Configuration
 TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
-    RobotModel model(0.3, 0.3, 0.1);
+    RobotModel model({0.3, 0.3, 0.1});
     AnalyticalSolverConfig config = get_default_test_config();
     AnalyticalSolver solver(config, model);
     
@@ -61,7 +61,7 @@ TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
 // Test 3: CAD Ground Truth Validation, Single Points (Table Format)
 TEST(KinematicsTest, CadValidationPoints) {
     // Instantiate using standard SI units (Meters)
-    RobotModel model(0.3, 0.3, 0.1);
+    RobotModel model({0.3, 0.3, 0.1});
     AnalyticalSolverConfig config = get_default_test_config();
     AnalyticalSolver cad_solver(config, model);
 
@@ -107,7 +107,7 @@ TEST(KinematicsTest, CadValidationPoints) {
 // Test 4: Inverse Kinematics CAD Ground Truth Validation
 TEST(KinematicsTest, InverseKinematicsCadValidation) {
     // Instantiate using standard SI units (Meters)
-    RobotModel model(0.3, 0.3, 0.1);
+    RobotModel model({0.3, 0.3, 0.1});
     AnalyticalSolverConfig config = get_default_test_config();
     AnalyticalSolver solver(config, model);
 
@@ -158,7 +158,7 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
 // run forward kinematics to get an ee pose, then run inverse kinematics
 // to get a joint angle again. Compare new joint angle with original.
 TEST(KinematicsTest, RandomizedFkIkCycle) {
-    RobotModel model(0.3, 0.3, 0.1);
+    RobotModel model({0.3, 0.3, 0.1});
     AnalyticalSolverConfig config = get_default_test_config();
     AnalyticalSolver solver(config, model);
 

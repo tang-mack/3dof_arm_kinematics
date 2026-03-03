@@ -1,13 +1,11 @@
 # kinematics.yaml
-# Note: This file defines parameters used by the following classes - Kinematics, AnalyticalSolver, PinocchioSolver
+# Note: This file defines parameters used by the following classes - AnalyticalSolver, PinocchioSolver
 
-# kinematics.yaml
-solver_type: "AnalyticalSolver"  # AnalyticalSolver or PinocchioSolver
-urdf_filepath: "./include/planar_arm_kinematics/config/urdf/planar_arm.urdf"
+urdf_filepath: "urdf/planar_arm.urdf"  # Must be relative to kinematics.yaml itself
 
 AnalyticalSolver:
-  parse_lengths_from_urdf_vs_yaml: "yaml"  # Pick urdf or yaml here
-  
+  link_length_source: "urdf"  # Pick urdf or yaml here
+
   # Link lengths (only used if yaml is selected above)
   link_lengths: [0.3, 0.3, 0.1]  # L1, L2, L3
   
