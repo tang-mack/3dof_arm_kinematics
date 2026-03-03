@@ -3,6 +3,10 @@
 
 #include <pinocchio/parsers/urdf.hpp> // Pinocchio URDF parser
 
+#include <pinocchio/algorithm/kinematics.hpp> // forward kinematics
+#include <pinocchio/algorithm/frames.hpp> // forward kinematics
+#include <cmath> // For std::atan2
+
 #include <stdexcept>
 #include <filesystem>
 #include <iostream>
@@ -56,7 +60,32 @@ void PinocchioSolver::load_urdf(const std::string& absolute_urdf_path) {
 }
 
 Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) const {
-    return Pose_XY_Yaw{0.0, 0.0, 0.0};
+    // Load joint angles into Eigen
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
+
+    // Safely copy our 3 joints into Eigen
+    for (int i = 0; i < std::min(3, (int)model_.nq); ++i) {
+        q[i] = joints[i];
+    }
+
+    // Run forward kinematics (write to data_ cache)
+    pinocchio::forwardKinematics(model_, data_, q);
+    pinocchio::updateFramePlacement(model_, data_, ee_frame_id_);
+
+    // Extract the 2D Pose from the end-effector's SE(3) transform (oMf = Origin to Frame)
+    const pinocchio::SE3& ee_transform = data_.oMf[ee_frame_id_];
+
+    Pose_XY_Yaw ee_pose;
+    ee_pose.x = ee_transform.translation().x();
+    ee_pose.y = ee_transform.translation().y();
+
+    // Extract Yaw by taking the arctangent of the 2D rotation components
+    // R(1,0) corresponds to sin(yaw), R(0,0) corresponds to cos(yaw)
+    const auto& R = ee_transform.rotation();
+    ee_pose.yaw = std::atan2(R(1,0), R(0,0));
+
+    return ee_pose;    
+    // return Pose_XY_Yaw{0.0, 0.0, 0.0};
 }
 
 JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
