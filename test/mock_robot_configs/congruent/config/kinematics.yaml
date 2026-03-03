@@ -1,0 +1,21 @@
+# kinematics.yaml
+# Note: This file defines parameters used by the following classes - AnalyticalSolver, PinocchioSolver
+
+urdf_filepath: "urdf/congruent.urdf"  # Must be relative to kinematics.yaml itself
+
+AnalyticalSolver:
+  link_length_source: "urdf"  # Pick urdf or yaml here
+
+  # Link lengths (only used if yaml is selected above)
+  link_lengths: [0.3, 0.3, 0.1]  # L1, L2, L3
+  
+  use_lookup_table_speedup: false
+  
+  # Joint limits in degrees [min, max] for each joint
+  joint_limits:
+    - [-178, 178]  # Joint 1
+    - [-178, 178]  # Joint 2
+    - [-178, 178]  # Joint 3
+
+PinocchioSolver:
+  use_lookup_table_speedup: false

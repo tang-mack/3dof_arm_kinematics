@@ -14,6 +14,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
 find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
+find_package(pinocchio REQUIRED) # Needed for PinochioSolver class
 
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library
@@ -23,7 +24,8 @@ target_include_directories(core_kinematics PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(core_kinematics PUBLIC yaml-cpp tinyxml2::tinyxml2) # Needed for YamlReader class, MiniURDFParser class
+# Needed for classes: YamlReader, MiniURDFParser, PinocchioSolver
+target_link_libraries(core_kinematics PUBLIC yaml-cpp tinyxml2::tinyxml2 pinocchio::pinocchio)
 
 # -----------------------------------------------------------
 # 2. Build the ROS Node Classes as Libraries (Component Ready)
@@ -88,6 +90,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_PinocchioSolver test/test_PinocchioSolver.cpp)
   target_link_libraries(test_PinocchioSolver core_kinematics)
+
+  # To avoid hardcoding filepaths within test .cpp files: Use CMake to Inject the absolute path to the test/ directory as a macro named TEST_DIR
+  target_compile_definitions(test_PinocchioSolver PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 endif()
 
