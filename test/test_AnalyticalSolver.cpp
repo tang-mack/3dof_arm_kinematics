@@ -232,6 +232,56 @@ TEST_P(AnalyticalParameterizedTest, OutOfReachTarget) {
     EXPECT_DOUBLE_EQ(q_solution[2], q_solution_original[2]);
 }
 
+// Test 7: Joint Limit Violation Validation
+TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
+    // Struct to hold CAD data points that are physically reachable (within 0.7m or total robot arm length)
+    // but mathematically require violating the (ie. [-178, 178]) degree joint limits.
+    //
+    // NOTE: These CAD points assume [-178 178], and hence will go beyond (ie. -178.5).
+    // However this test still works if you change the joint limit dynamically in say the yaml (ie. [-150 150]),
+    // but within reason, we assume you won't go beyond 178 degrees because that's already fairly aggressive.
+    // Unless you have slip rings, 178 is decent.
+    //
+    struct LimitDataPoint {
+        double target_x_m;
+        double target_y_m;
+        double target_yaw_deg;
+        double guess_t2_deg; // Elbow guess to force the specific out-of-bounds configuration
+    };
+
+    std::vector<LimitDataPoint> limit_points = {
+        // Target X, Target Y, Target Yaw, Elbow Guess (deg)
+        // Example: A target that forces the wrist (joint 3) to bend to 185 degrees
+        { -544.16603e-3, 251.97819e-3, -189.0, 60.0 } 
+        // Add more CAD ground truth limit-breaking points here...
+    };
+
+    for (size_t i = 0; i < limit_points.size(); ++i) {
+        const auto& pt = limit_points[i];
+        
+        Pose_XY_Yaw target_pose{pt.target_x_m, pt.target_y_m, deg2rad(pt.target_yaw_deg)};
+        
+        // Pass the elbow guess to guide the solver
+        JointAnglesRad q_guess = {0.0, deg2rad(pt.guess_t2_deg), 0.0};
+        JointAnglesRad q_solution = {99.0, 99.0, 99.0}; // Sentinel garbage values
+        IKStatus status;
+        
+        bool success = solver_->inverse_kinematics(target_pose, q_solution, q_guess, status);
+        
+        // Verify the solver gracefully failed
+        EXPECT_FALSE(success) << "IK incorrectly succeeded at table index " << i;
+        
+        // Verify the status enum correctly identified the joint limit violation
+        EXPECT_EQ(status, IKStatus::JOINT_LIMIT_VIOLATION) 
+            << "Incorrect failure status at table index " << i;
+        
+        // Verify the output array safely reverted to the guess
+        EXPECT_DOUBLE_EQ(q_solution[0], q_guess[0]);
+        EXPECT_DOUBLE_EQ(q_solution[1], q_guess[1]);
+        EXPECT_DOUBLE_EQ(q_solution[2], q_guess[2]);
+    }
+}
+
 // Add more TEST_P blocks here for Inverse Kinematics, CAD validations, etc.
 // They will all automatically run against every configuration (see below for CONFIGURATION GENERATOR).
 
