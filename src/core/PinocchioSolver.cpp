@@ -34,6 +34,8 @@ PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
 
     load_urdf(absolute_urdf_path.string());
 
+    calculate_maximum_reach_from_urdf();
+
 
 }
 
@@ -41,6 +43,8 @@ PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
 PinocchioSolver::PinocchioSolver(const PinocchioSolverConfig& config) : config_(config) {
     // For unit tests, we assume the struct provides a valid path
     load_urdf(config_.urdf_filepath);
+
+    calculate_maximum_reach_from_urdf();
 }
 
 void PinocchioSolver::load_urdf(const std::string& absolute_urdf_path) {
@@ -92,6 +96,21 @@ Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) co
     return ee_pose;    
 }
 
+/// @brief Calculate and store max_reach_
+void PinocchioSolver::calculate_maximum_reach_from_urdf() {
+    // Dynamically calculate the absolute maximum theoretical reach of this URDF
+    // by walking up the parent tree from the end-effector to the base.
+    double max_reach = model_.frames[ee_frame_id_].placement.translation().norm(); // [m]
+    pinocchio::JointIndex current_joint = model_.frames[ee_frame_id_].parentJoint;
+
+    while (current_joint > 0) { // 0 is the universe/world base
+        max_reach += model_.jointPlacements[current_joint].translation().norm();
+        current_joint = model_.parents[current_joint];
+    }
+
+    max_reach_ = max_reach;
+}
+
 /// @brief Levenberg-Marquadt inverse kinematics implementation
 /// @details Why LM: LM (aka damped least squares) is good for dealing with singularities. It's a technique used by humanoid companies.
 /// It's advantageous when moving around and continually solving IK at a high rate: you simply feed in the previous
@@ -110,21 +129,11 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
 
     // ========================================================================
     // ---- FAILURE CHECK: OUT OF REACH (KINEMATIC TREE PRE-CHECK) ----
-    // Dynamically calculate the absolute maximum theoretical reach of this URDF
-    // by walking up the parent tree from the end-effector to the base.
-    double max_reach = model_.frames[ee_frame_id_].placement.translation().norm(); // [m]
-    pinocchio::JointIndex current_joint = model_.frames[ee_frame_id_].parentJoint;
-    
-    while (current_joint > 0) { // 0 is the universe/world base
-        max_reach += model_.jointPlacements[current_joint].translation().norm();
-        current_joint = model_.parents[current_joint];
-    }
-
     // Calculate the straight-line distance (L2 norm) to the target from the base
     double target_distance = std::sqrt(ee_target.x * ee_target.x + ee_target.y * ee_target.y); // [m]
     
     // If the target is further than the unrolled arm lengths (plus tiny epsilon), exit early
-    if (target_distance > max_reach + 1e-4) {
+    if (target_distance > max_reach_ + 1e-4) {
         q_solution = original_q_solution;
         status = IKStatus::OUT_OF_REACH;
         return false;

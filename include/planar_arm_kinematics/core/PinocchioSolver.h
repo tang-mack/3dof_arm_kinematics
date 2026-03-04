@@ -32,6 +32,7 @@ public:
 
 private:
     void load_urdf(const std::string& absolute_urdf_path);
+    void calculate_maximum_reach_from_urdf();
 
     PinocchioSolverConfig config_;
 
@@ -39,6 +40,8 @@ private:
     pinocchio::Model model_;
     mutable pinocchio::Data data_; // Mutable because Pinocchio writes intermediate math to this struct
     int ee_frame_id_; // Cached ID for end effector
+
+    double max_reach_{0.0}; // [m], for checking IK target out-of-reach
 };
 
 } // namespace planar_arm
