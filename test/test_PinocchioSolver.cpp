@@ -151,31 +151,31 @@ TEST_P(PinocchioParameterizedTest, InverseKinematicsCadValidation) {
     }
 }
 
-// // Test 5: Automated Randomized Forward/Inverse Kinematics Cycle
-// TEST_P(PinocchioParameterizedTest, RandomizedFkIkCycle) {
-//     std::mt19937 gen(42);
+// Test 5: Automated Randomized Forward/Inverse Kinematics Cycle
+TEST_P(PinocchioParameterizedTest, RandomizedFkIkCycle) {
+    std::mt19937 gen(42);
     
-//     std::uniform_real_distribution<double> dist_joint_1(deg2rad(-178.0), deg2rad(178.0));
-//     std::uniform_real_distribution<double> dist_joint_2(deg2rad(-178.0), deg2rad(178.0));
-//     std::uniform_real_distribution<double> dist_joint_3(deg2rad(-178.0), deg2rad(178.0));
+    std::uniform_real_distribution<double> dist_joint_1(deg2rad(-178.0), deg2rad(178.0));
+    std::uniform_real_distribution<double> dist_joint_2(deg2rad(-178.0), deg2rad(178.0));
+    std::uniform_real_distribution<double> dist_joint_3(deg2rad(-178.0), deg2rad(178.0));
 
-//     const int num_iterations = 10000;
+    const int num_iterations = 10000;
 
-//     for (int i = 0; i < num_iterations; ++i) {
-//         JointAnglesRad original_joints = {dist_joint_1(gen), dist_joint_2(gen), dist_joint_3(gen)};
+    for (int i = 0; i < num_iterations; ++i) {
+        JointAnglesRad original_joints = {dist_joint_1(gen), dist_joint_2(gen), dist_joint_3(gen)};
 
-//         Pose_XY_Yaw ee_pose = solver_->forward_kinematics(original_joints);
+        Pose_XY_Yaw ee_pose = solver_->forward_kinematics(original_joints);
 
-//         JointAnglesRad calculated_joints = solver_->inverse_kinematics(ee_pose, original_joints[1]);
+        JointAnglesRad calculated_joints = solver_->inverse_kinematics(ee_pose, original_joints[1]);
 
-//         EXPECT_NEAR(calculated_joints[0], original_joints[0], 1e-4) 
-//             << "Joint 0 mismatch at iteration " << i;
-//         EXPECT_NEAR(calculated_joints[1], original_joints[1], 1e-4) 
-//             << "Joint 1 mismatch at iteration " << i;
-//         EXPECT_NEAR(calculated_joints[2], original_joints[2], 1e-4) 
-//             << "Joint 2 mismatch at iteration " << i;
-//     }
-// }
+        EXPECT_NEAR(calculated_joints[0], original_joints[0], 1e-4) 
+            << "Joint 0 mismatch at iteration " << i;
+        EXPECT_NEAR(calculated_joints[1], original_joints[1], 1e-4) 
+            << "Joint 1 mismatch at iteration " << i;
+        EXPECT_NEAR(calculated_joints[2], original_joints[2], 1e-4) 
+            << "Joint 2 mismatch at iteration " << i;
+    }
+}
 
 // Add more TEST_P blocks here for Inverse Kinematics, CAD validations, etc.
 // They will all automatically run against every configuration!
