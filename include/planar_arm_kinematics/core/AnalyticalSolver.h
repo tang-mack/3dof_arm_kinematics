@@ -29,7 +29,7 @@ public:
     explicit AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model);
 
     Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joint_angles) const;
-    JointAnglesRad inverse_kinematics(const Pose_XY_Yaw& end_effector_target, const double guess_elbow_joint) const;
+    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const;
 
 private:
     /// @brief Wraps angle to [-pi to pi]

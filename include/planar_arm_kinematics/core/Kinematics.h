@@ -18,14 +18,13 @@ public:
         return solver_.forward_kinematics(joint_angles_rad);
     }
 
-    JointAnglesRad compute_ik(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
-        // Pass straight through to the backend  to solve
-        return solver_.inverse_kinematics(target, guess_elbow_joint);
+    bool compute_ik(const Pose_XY_Yaw& target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
+        return solver_.inverse_kinematics(target, q_solution, q_guess, status);
     }
 
 private:
     SolverBackend solver_;
-    JointAnglesRad previous_angles_; // Store previous joint angles
+    // JointAnglesRad previous_angles_; // Store previous joint angles
 
 };
 

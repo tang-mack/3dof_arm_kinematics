@@ -15,13 +15,44 @@ void IkSubscriberNode::pose_callback(const geometry_msgs::msg::Pose2D::SharedPtr
     Pose_XY_Yaw target_pose{msg->x, msg->y, msg->theta};
 
     // Call pure Non ROS C++ API
-    JointAnglesRad computed_joints = kinematics_.compute_ik(target_pose, previous_joints_[1]); // guess with previous elbow
+    // JointAnglesRad computed_joints = kinematics_.compute_ik(target_pose, previous_joints_[1]); // guess with previous elbow
+    IKStatus status;
+    JointAnglesRad q_solution = {0.0, 0.0, 0.0};
+    bool ik_ok = kinematics_.compute_ik(target_pose, q_solution, previous_joints_, status);
 
-    previous_joints_ = computed_joints; // Update previous joints
+    if (ik_ok == true) {
+        previous_joints_ = q_solution; // Update previous joints
 
-    // Print the result
-    RCLCPP_INFO(this->get_logger(), "IK Node Received Pose. Output Angles -> t1: %.2f, t2: %.2f, t3: %.2f", 
-                computed_joints[0], computed_joints[1], computed_joints[2]);
+        // Print the result
+        RCLCPP_INFO(this->get_logger(), "IK Node Received Pose. Output Angles -> t1: %.2f, t2: %.2f, t3: %.2f", 
+        q_solution[0], q_solution[1], q_solution[2]);
+    }
+    else {
+        // Handle the error
+        // Throttle printing (1000ms) to prevent console spam: evaluate the failure every tick, but only print the warning to console once per second.
+        auto clock = this->get_clock();
+        
+        switch (status) {
+            case IKStatus::OUT_OF_REACH:
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *clock, 1000, 
+                    "IK Failed: Target (%.2f, %.2f) is out of physical reach.", target_pose.x, target_pose.y);
+                break;
+            case IKStatus::MAX_ITERATIONS_REACHED:
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *clock, 1000, 
+                    "IK Failed: Solver timed out (trapped in local minimum).");
+                break;
+            case IKStatus::OTHER_ERROR:
+                RCLCPP_ERROR_THROTTLE(this->get_logger(), *clock, 1000, 
+                    "IK Failed: Other error.");
+                break;
+            default:
+                RCLCPP_ERROR_THROTTLE(this->get_logger(), *clock, 1000, 
+                    "IK Failed: Unknown error.");
+                break;
+        }
+    }
+
+
 }
 
 } // namespace planar_arm

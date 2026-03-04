@@ -28,7 +28,7 @@ public:
     explicit PinocchioSolver(const PinocchioSolverConfig& config);
     
     Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joints) const;
-    JointAnglesRad inverse_kinematics(const Pose_XY_Yaw& ee_pose, const double guess_elbow_joint) const;
+    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const;
 
 private:
     void load_urdf(const std::string& absolute_urdf_path);

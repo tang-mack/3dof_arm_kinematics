@@ -101,23 +101,37 @@ double AnalyticalSolver::wrap_to_pi(const double angle) const {
     return std::atan2(std::sin(angle), std::cos(angle));
 }
 
-JointAnglesRad AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& end_effector_target, const double guess_elbow_joint) const {
+bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
     // std::cout << "[AnalyticalSolver] inverse_kinematics called" << std::endl;
 
     double L1 = model_.get_length(0);
     double L2 = model_.get_length(1);
     double L3 = model_.get_length(2);
 
-    double x = end_effector_target.x;
-    double y = end_effector_target.y;
-    double yaw = end_effector_target.yaw;
+    double x = ee_target.x;
+    double y = ee_target.y;
+    double yaw = ee_target.yaw;
+
+    double guess_elbow_joint = q_guess.at(1);
 
     // Trick: solve wrist first
     double x_wrist = x - L3 * std::cos(yaw);
     double y_wrist = y - L3 * std::sin(yaw);
 
     double arccos_input = (x_wrist*x_wrist + y_wrist*y_wrist - L1*L1 - L2*L2) / (2 * L1 * L2);
-    arccos_input = std::clamp(arccos_input, -1.0, 1.0); // If the input to arccos is beyond -1.0 to 1.0, std::acos will return NaN, possibly causing issues.
+
+    // ---- FAILURE CHECK: OUT OF REACH ----
+    // If the required geometry demands a triangle edge longer than physically possible, 
+    // the arccos input will fall outside [-1, 1]. We allow a tiny epsilon for floating point math.
+    if (arccos_input > 1.0 + 1e-6 || arccos_input < -1.0 - 1e-6) {
+        q_solution = q_guess; // Behavior on failure: q_solution passes through unchanged.
+        status = IKStatus::OUT_OF_REACH;
+        return false;
+    }
+
+    // If the input to arccos is beyond -1.0 to 1.0, std::acos will return NaN, possibly causing issues.
+    // It should already be safe by now, but if arccos_input was 1.000000000001 that could cause an issue, so we clamp it here.
+    arccos_input = std::clamp(arccos_input, -1.0, 1.0); 
 
     // arc cosine returns two values. std::acos returns the principal value (0 to pi). The second solution is given by -std::acos
     double theta_2_sol1 = std::acos(arccos_input); // Elbow down
@@ -138,7 +152,12 @@ JointAnglesRad AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& end_effec
     double theta_3 = yaw - theta_1 - theta_2;
 
     // Strictly normalize all angles between [-pi, pi] just in case
-    return JointAnglesRad{wrap_to_pi(theta_1), wrap_to_pi(theta_2), wrap_to_pi(theta_3)};
+    q_solution.at(0) = wrap_to_pi(theta_1);
+    q_solution.at(1) = wrap_to_pi(theta_2);
+    q_solution.at(2) = wrap_to_pi(theta_3);
+    status = IKStatus::SUCCESS;
+
+    return true;
 }
 
 

@@ -55,6 +55,7 @@ protected:
 // 3. THE ACTUAL TEST LOGIC
 // We use TEST_P instead of TEST. We write the math validation exactly once.
 // ==============================================================================
+// Test 1: Forward Kinematics at Zero Joint Angles
 TEST_P(PinocchioParameterizedTest, ForwardKinematicsZeroAngles) {
     // Set all joint angles to 0.0 radians
     JointAnglesRad joints = {0.0, 0.0, 0.0};
@@ -74,7 +75,14 @@ TEST_P(PinocchioParameterizedTest, InverseKinematicsZeroConfiguration) {
     Pose_XY_Yaw target{0.7, 0.0, 0.0};
     
     // Pass 30 degrees (in rads) as the elbow guess
-    JointAnglesRad joints = solver_->inverse_kinematics(target, 30.0 * M_PI / 180.0);
+    JointAnglesRad q_guess = {0.0, 30.0 * M_PI / 180.0, 0.0};
+    JointAnglesRad joints = {0.0, 0.0, 0.0};
+    IKStatus status;
+    
+    bool success = solver_->inverse_kinematics(target, joints, q_guess, status);
+    
+    EXPECT_TRUE(success);
+    EXPECT_EQ(status, IKStatus::SUCCESS);
     
     // // The angles required to reach this should all be 0.0
     // EXPECT_DOUBLE_EQ(joints[0], 0.0);
@@ -139,8 +147,14 @@ TEST_P(PinocchioParameterizedTest, InverseKinematicsCadValidation) {
         Pose_XY_Yaw target_pose{pt.expected_x_m, pt.expected_y_m, deg2rad(pt.expected_yaw_deg)};
         
         // Pass the expected elbow angle as the guess
-        double elbow_guess = deg2rad(pt.t2_deg);
-        JointAnglesRad calculated_joints = solver_->inverse_kinematics(target_pose, elbow_guess);
+        JointAnglesRad q_guess = {0.0, deg2rad(pt.t2_deg), 0.0};
+        JointAnglesRad calculated_joints = {0.0, 0.0, 0.0};
+        IKStatus status;
+        
+        bool success = solver_->inverse_kinematics(target_pose, calculated_joints, q_guess, status);
+
+        EXPECT_TRUE(success) << "IK failed to find solution at table index " << i;
+        EXPECT_EQ(status, IKStatus::SUCCESS);
         
         EXPECT_NEAR(calculated_joints[0], deg2rad(pt.t1_deg), 1e-4) 
             << "IK Theta 1 failed at table index " << i;
@@ -166,7 +180,14 @@ TEST_P(PinocchioParameterizedTest, RandomizedFkIkCycle) {
 
         Pose_XY_Yaw ee_pose = solver_->forward_kinematics(original_joints);
 
-        JointAnglesRad calculated_joints = solver_->inverse_kinematics(ee_pose, original_joints[1]);
+        JointAnglesRad calculated_joints = {0.0, 0.0, 0.0};
+        IKStatus status;
+        
+        // Pass the FULL original joints as the guess to ensure continuous branch selection
+        bool success = solver_->inverse_kinematics(ee_pose, calculated_joints, original_joints, status);
+
+        EXPECT_TRUE(success) << "IK failed at iteration " << i;
+        EXPECT_EQ(status, IKStatus::SUCCESS);
 
         EXPECT_NEAR(calculated_joints[0], original_joints[0], 1e-4) 
             << "Joint 0 mismatch at iteration " << i;
@@ -178,7 +199,7 @@ TEST_P(PinocchioParameterizedTest, RandomizedFkIkCycle) {
 }
 
 // Add more TEST_P blocks here for Inverse Kinematics, CAD validations, etc.
-// They will all automatically run against every configuration!
+// They will all automatically run against every configuration (see below for CONFIGURATION GENERATOR).
 
 
 // ==============================================================================

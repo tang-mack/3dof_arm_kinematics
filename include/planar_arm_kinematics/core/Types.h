@@ -12,5 +12,12 @@ namespace planar_arm {
     };
 
     using JointAnglesRad = std::array<double, 3>; // [rad] Joint angles, theta_1, theta_2, theta_3
+
+    enum class IKStatus {
+        SUCCESS,
+        OUT_OF_REACH,           // End-effector target is outside the reachable workspace
+        MAX_ITERATIONS_REACHED, // Numerical specific: Iterative solver timed out
+        OTHER_ERROR
+    };
     
 } // namespace planar_arm

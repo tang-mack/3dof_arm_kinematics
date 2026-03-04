@@ -49,13 +49,21 @@ TEST(KinematicsTest, InverseKinematicsZeroConfiguration) {
     
     // Target the fully extended position
     Pose_XY_Yaw target{0.7, 0.0, 0.0};
-    
-    JointAnglesRad joints = solver.inverse_kinematics(target, 30.0*M_PI/180.0);
+
+    // Call the solver
+    JointAnglesRad q_guess = {0.0, deg2rad(30.0), 0.0}; 
+    JointAnglesRad q_solution = {0.0, 0.0, 0.0};
+    IKStatus status;
+    bool success = solver.inverse_kinematics(target, q_solution, q_guess, status);
+
+    // Verify the solver successfully found a solution
+    EXPECT_TRUE(success);
+    EXPECT_EQ(status, IKStatus::SUCCESS);
     
     // The angles required to reach this should all be 0.0
-    EXPECT_DOUBLE_EQ(joints[0], 0.0);
-    EXPECT_DOUBLE_EQ(joints[1], 0.0);
-    EXPECT_DOUBLE_EQ(joints[2], 0.0);
+    EXPECT_DOUBLE_EQ(q_solution[0], 0.0);
+    EXPECT_DOUBLE_EQ(q_solution[1], 0.0);
+    EXPECT_DOUBLE_EQ(q_solution[2], 0.0);
 }
 
 // Test 3: CAD Ground Truth Validation, Single Points (Table Format)
@@ -125,7 +133,7 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
     std::vector<CadDataPoint> cad_points = {
         // t1 (deg), t2 (deg), t3 (deg), X (m),         Y (m),        Yaw (deg)
         { 17.0,      60.0,     -70.0,    453.631e-3,    392.209e-3,   7.0},
-        { -17.0,      60.0,     -70.0,    595.39819e-3,    71.48895e-3,   -27.0}
+        { -17.0,     60.0,     -70.0,    595.39819e-3,  71.48895e-3,  -27.0}
         // Add more rows here...
     };
 
@@ -136,8 +144,15 @@ TEST(KinematicsTest, InverseKinematicsCadValidation) {
         Pose_XY_Yaw target_pose{pt.expected_x_m, pt.expected_y_m, deg2rad(pt.expected_yaw_deg)};
         
         // Pass the expected elbow angle as the guess to ensure the solver selects the matching configuration
-        double elbow_guess = deg2rad(pt.t2_deg);
-        JointAnglesRad calculated_joints = solver.inverse_kinematics(target_pose, elbow_guess);
+        JointAnglesRad q_guess = {0.0, deg2rad(pt.t2_deg), 0.0};
+        JointAnglesRad calculated_joints = {0.0, 0.0, 0.0};
+        IKStatus status;
+        
+        bool success = solver.inverse_kinematics(target_pose, calculated_joints, q_guess, status);
+        
+        // Verify the solver successfully found a solution before checking the math
+        EXPECT_TRUE(success) << "IK failed to find solution at table index " << i;
+        EXPECT_EQ(status, IKStatus::SUCCESS);
         
         // Use EXPECT_NEAR with a 1e-4 radian tolerance (approx 0.005 degrees) for floating-point IK comparisons
         // Rationale: 1e-4 is smaller than many encoder errors
@@ -181,9 +196,16 @@ TEST(KinematicsTest, RandomizedFkIkCycle) {
         Pose_XY_Yaw ee_pose = solver.forward_kinematics(original_joints);
 
         // 3. Compute Inverse Kinematics
-        // The original elbow joint is passed as the guess to force the solver
+        // The original joints are passed as the guess to force the solver
         // (if we had elbow-up vs. down, we want to get the same out).
-        JointAnglesRad calculated_joints = solver.inverse_kinematics(ee_pose, original_joints[1]);
+        JointAnglesRad calculated_joints = {0.0, 0.0, 0.0};
+        IKStatus status;
+        
+        bool success = solver.inverse_kinematics(ee_pose, calculated_joints, original_joints, status);
+
+        // Ensure the solver didn't throw a failure flag
+        EXPECT_TRUE(success) << "IK failed at iteration " << i;
+        EXPECT_EQ(status, IKStatus::SUCCESS);
 
         // 4. Validate the output matches the input
         EXPECT_NEAR(calculated_joints[0], original_joints[0], 1e-4) 

@@ -105,18 +105,22 @@ Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) co
 /// @param ee_pose 
 /// @param guess_elbow_joint 
 /// @return the joint angles in [rad]
-JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, const double guess_elbow_joint) const {
+// bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const;
+
+// JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, const double guess_elbow_joint) const {
+bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
+
+    JointAnglesRad original_q_solution = q_solution; // Store a copy of the original input: if IK fails, we return what was passed in
+
     // Build the world_T_target SE(3) transformation matrix
     Eigen::Matrix3d world_R_target = Eigen::AngleAxisd(ee_target.yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix(); // world_R_ee = Rotate by "yaw" around Z_world
     Eigen::Vector3d world_p_target(ee_target.x, ee_target.y, 0.0);
     pinocchio::SE3 world_T_target(world_R_target, world_p_target);
 
-    // Initialize q with our elbow guess
+    // Initialize q with our shoulder guess, elbow guess, wrist guess
     Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
-    if (model_.nq >= 3) {
-        q[0] = 0.0; // Shoulder guess
-        q[1] = guess_elbow_joint;
-        q[2] = 0.0; // Wrist guess
+    for (int i = 0; i < std::min(3, (int)model_.nq); ++i) {
+        q[i] = q_guess[i];
     }
 
     // Iterative Solver Settings
@@ -152,7 +156,18 @@ JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target,
         // Check if we have reached the target ee
         // if (linear_vel_angular_vel_error.norm() < error_tol) {
         if (linear_vel_angular_vel_error_planar_only.norm() < error_tol) {
-            break;
+            
+            // Package and wrap-to-pi the results
+            for (int j = 0; j < std::min(3, (int)model_.nq); ++j) {
+                // Wrap angles strictly between [-pi, pi]
+                double angle = std::fmod(q[j], 2.0 * M_PI);
+                if (angle > M_PI) angle -= 2.0 * M_PI;
+                if (angle < -M_PI) angle += 2.0 * M_PI;
+                q_solution[j] = angle;
+            }
+            
+            status = IKStatus::SUCCESS;
+            return true;
         }
 
         // Compute the Jacobian in the LOCAL frame of the end-effector. x_dot_wrt_ee_frame = J_local(q)*q_dot
@@ -183,19 +198,11 @@ JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target,
         q = pinocchio::integrate(model_, q, q_dot_step);
     }
 
-    // Package and wrap-to-pi the results
-    JointAnglesRad result = {0.0, 0.0, 0.0};
-    for (int i = 0; i  < std::min(3, (int)model_.nq); ++i) {
-        // Wrap angles strictly between [-pi, pi]
-        double angle = std::fmod(q[i], 2.0*M_PI);
-        if (angle > M_PI) angle -= 2.0 * M_PI;
-        if (angle < -M_PI) angle += 2.0 * M_PI;
-
-        result.at(i) = angle;
-    }
-
-    return result;
-    // return JointAnglesRad{0.0, 0.0, 0.0};
+    // ---- FAILURE CHECK ----
+    // If the loop finishes without breaking, it reached max iterations without converging
+    q_solution = original_q_solution; // Failure behavior: Return what was passed in
+    status = IKStatus::MAX_ITERATIONS_REACHED;
+    return false;
 }
 
 } // namespace planar_arm
