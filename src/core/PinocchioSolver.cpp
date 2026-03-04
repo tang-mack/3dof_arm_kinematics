@@ -5,6 +5,11 @@
 
 #include <pinocchio/algorithm/kinematics.hpp> // forward kinematics
 #include <pinocchio/algorithm/frames.hpp> // forward kinematics
+
+#include <pinocchio/algorithm/jacobian.hpp> // Add for inverse kinematics
+#include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/spatial/explog.hpp>
+
 #include <cmath> // For std::atan2
 
 #include <stdexcept>
@@ -88,8 +93,109 @@ Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) co
     // return Pose_XY_Yaw{0.0, 0.0, 0.0};
 }
 
-JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& target, const double guess_elbow_joint) const {
-    return JointAnglesRad{0.0, 0.0, 0.0};
+/// @brief Levenberg-Marquadt inverse kinematics implementation
+/// @details Why LM: LM (aka damped least squares) is good for dealing with singularities. It's a technique used by humanoid companies.
+/// It's advantageous when moving around and continually solving IK at a high rate: you simply feed in the previous
+/// solution as an initial guess. Not great if you don't have an initial guess.
+///
+/// Literature summary:
+///     https://www.mathworks.com/help/robotics/ug/inverse-kinematics-algorithms.html#bve7apt
+///     Summary: performs well when a good initial guess can be given (ie. finding IK poses along a known desired trajectory)
+///
+/// @param ee_pose 
+/// @param guess_elbow_joint 
+/// @return the joint angles in [rad]
+JointAnglesRad PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, const double guess_elbow_joint) const {
+    // Build the world_T_target SE(3) transformation matrix
+    Eigen::Matrix3d world_R_target = Eigen::AngleAxisd(ee_target.yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix(); // world_R_ee = Rotate by "yaw" around Z_world
+    Eigen::Vector3d world_p_target(ee_target.x, ee_target.y, 0.0);
+    pinocchio::SE3 world_T_target(world_R_target, world_p_target);
+
+    // Initialize q with our elbow guess
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
+    if (model_.nq >= 3) {
+        q[0] = 0.0; // Shoulder guess
+        q[1] = guess_elbow_joint;
+        q[2] = 0.0; // Wrist guess
+    }
+
+    // Iterative Solver Settings
+    const double error_tol = 1e-4; // Error tolerance [radians]
+    const int ITERATIONS_MAX = 500; // Maximum allowed iterations
+    const double damping = 1e-6; // Damping factor for pseudo-inverse (prevents singularity crashes). Approaches mention lambda, here, damping = lambda*lambda.
+
+    pinocchio::Data::Matrix6x J_local(6, model_.nv); // Local to ee frame: x_dot_wrt_ee_frame = J_local(q)*q_dot
+    Eigen::VectorXd q_dot_step(model_.nv); // small joint velocity "step" to take
+
+    // The Gauss-Newton Iteration Loop
+    for (int i = 0; i  < ITERATIONS_MAX; ++i) {
+        // Calculate where the arm currently is
+        pinocchio::forwardKinematics(model_, data_, q);
+        pinocchio::updateFramePlacement(model_, data_, ee_frame_id_);
+
+        // ---- Calculate the spatial error between current ee and target ee ----
+        const pinocchio::SE3 world_T_current = data_.oMf[ee_frame_id_]; // oMf: Origin to Frame
+        const pinocchio::SE3 current_T_target = world_T_current.actInv(world_T_target); // current_T_target = (world_T_current)^-1 * world_T_target
+        // You can't just subtract two rotation matrices or T matrices: they exist on a manifold (ie. two points on the earth cannot be connected
+        // with a straight line, that would go "underground")
+        // But you can use the matrix logarithm to convert to 6 numbers: log(current_T_target) = [XYZ velocity, angular velocity]. 
+        // This [XYZ velocity, angular velocity] quantifies the difference as a velocity in one unit of time.
+        // If the velocity is large, current_T_target is a massive rotation matrix + translation, and small velocity means small T.
+        Eigen::VectorXd linear_vel_angular_vel_error = pinocchio::log6(current_T_target).toVector();
+
+        // But we need to Slice this 6D velocity error [vx, vy, vz, wx, wy, wz] down to strictly planar dimensions [vx, vy, wz], indexes 0, 1, and 5.
+        Eigen::Vector3d linear_vel_angular_vel_error_planar_only;
+        linear_vel_angular_vel_error_planar_only << linear_vel_angular_vel_error(0), 
+                                                    linear_vel_angular_vel_error(1), 
+                                                    linear_vel_angular_vel_error(5);
+
+        // Check if we have reached the target ee
+        // if (linear_vel_angular_vel_error.norm() < error_tol) {
+        if (linear_vel_angular_vel_error_planar_only.norm() < error_tol) {
+            break;
+        }
+
+        // Compute the Jacobian in the LOCAL frame of the end-effector. x_dot_wrt_ee_frame = J_local(q)*q_dot
+        J_local.setZero();
+        pinocchio::computeFrameJacobian(model_, data_, q, ee_frame_id_, pinocchio::LOCAL, J_local);
+
+        // Slice the Jacobian down to the same 3 planar rows [vx, vy, wz]
+        Eigen::MatrixXd J_planar(3, model_.nv);
+        J_planar.row(0) = J_local.row(0); // vx
+        J_planar.row(1) = J_local.row(1); // vy
+        J_planar.row(2) = J_local.row(5); // wz
+
+        // // Compute the damped pseudo-inverse step
+        // // q_dot_step = J.T * (J * J.T + damping * I)^-1 * error
+        // pinocchio::Data::Matrix6 JJt; // J*J.T
+        // // JJt.noalias() = J_local * J_local.transpose();
+        // Eigen::MatrixXd JtJ = J_local.transpose() * J_local;
+        // JJt.diagonal().array() += damping;
+
+        // Compute the damped left pseudo-inverse step using the planar matrices
+        Eigen::MatrixXd JtJ = J_planar.transpose() * J_planar;
+        JtJ.diagonal().array() += damping;
+
+        // q_dot_step.noalias() = J_local.transpose() * JJt.ldlt().solve(linear_vel_angular_vel_error);
+        q_dot_step.noalias() = JtJ.ldlt().solve(J_planar.transpose() * linear_vel_angular_vel_error_planar_only);
+
+        // Apply the velocity step to our joint angles
+        q = pinocchio::integrate(model_, q, q_dot_step);
+    }
+
+    // Package and wrap-to-pi the results
+    JointAnglesRad result = {0.0, 0.0, 0.0};
+    for (int i = 0; i  < std::min(3, (int)model_.nq); ++i) {
+        // Wrap angles strictly between [-pi, pi]
+        double angle = std::fmod(q[i], 2.0*M_PI);
+        if (angle > M_PI) angle -= 2.0 * M_PI;
+        if (angle < -M_PI) angle += 2.0 * M_PI;
+
+        result.at(i) = angle;
+    }
+
+    return result;
+    // return JointAnglesRad{0.0, 0.0, 0.0};
 }
 
 } // namespace planar_arm
