@@ -34,10 +34,15 @@ PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
 
     load_urdf(absolute_urdf_path.string());
 
+    // Rationale: This check is fairly important, prevent runtime crashes from indexing out of bounds (ie. URDF has 6 joints instead of 3).
+    if (model_.nq != 3) {
+        // Because of specific logic for a 3-DOF planar arm, only 3 DOFs are expected.
+        throw std::runtime_error("[PinocchioSolver] This solver can only handle model_.nq == 3 currently. model_.nq of " + std::to_string(model_.nq) + " found. Does URDF have more than 3 DOF?");
+    }
+
     calculate_maximum_reach_from_urdf();
-
-
 }
+
 
 // Constructor 2: Inject config struct directly
 PinocchioSolver::PinocchioSolver(const PinocchioSolverConfig& config) : config_(config) {
@@ -46,6 +51,7 @@ PinocchioSolver::PinocchioSolver(const PinocchioSolverConfig& config) : config_(
 
     calculate_maximum_reach_from_urdf();
 }
+
 
 void PinocchioSolver::load_urdf(const std::string& absolute_urdf_path) {
     try {
@@ -62,18 +68,19 @@ void PinocchioSolver::load_urdf(const std::string& absolute_urdf_path) {
     const std::string ee_name = "end_effector";
     if (model_.existFrame(ee_name)) {
         ee_frame_id_ = model_.getFrameId(ee_name);
-        std::cout << "[PinocchioSolver] Successfully loaded URDF. End-effector frame ID: " << ee_frame_id_ << std::endl;
+        // std::cout << "[PinocchioSolver] Successfully loaded URDF. End-effector frame ID: " << ee_frame_id_ << std::endl;
     } else {
         throw std::runtime_error("[PinocchioSolver] Frame '" + ee_name + "' not found in URDF.");
     }
 }
+
 
 Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) const {
     // Load joint angles into Eigen
     Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
 
     // Safely copy our 3 joints into Eigen
-    for (int i = 0; i < std::min(3, (int)model_.nq); ++i) {
+    for (int i = 0; i < model_.nq; ++i) {
         q[i] = joints[i];
     }
 
@@ -82,19 +89,20 @@ Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) co
     pinocchio::updateFramePlacement(model_, data_, ee_frame_id_);
 
     // Extract the 2D Pose from the end-effector's SE(3) transform (oMf = Origin to Frame)
-    const pinocchio::SE3& ee_transform = data_.oMf[ee_frame_id_];
+    const pinocchio::SE3& world_T_ee = data_.oMf[ee_frame_id_];
 
     Pose_XY_Yaw ee_pose;
-    ee_pose.x = ee_transform.translation().x();
-    ee_pose.y = ee_transform.translation().y();
+    ee_pose.x = world_T_ee.translation().x();
+    ee_pose.y = world_T_ee.translation().y();
 
     // Extract Yaw by taking the arctangent of the 2D rotation components
     // R(1,0) corresponds to sin(yaw), R(0,0) corresponds to cos(yaw)
-    const auto& R = ee_transform.rotation();
+    const auto& R = world_T_ee.rotation();
     ee_pose.yaw = std::atan2(R(1,0), R(0,0));
 
     return ee_pose;    
 }
+
 
 /// @brief Calculate and store max_reach_
 void PinocchioSolver::calculate_maximum_reach_from_urdf() {
@@ -111,6 +119,7 @@ void PinocchioSolver::calculate_maximum_reach_from_urdf() {
     max_reach_ = max_reach;
 }
 
+
 /// @brief Levenberg-Marquadt inverse kinematics implementation
 /// @details Why LM: LM (aka damped least squares) is good for dealing with singularities. It's a technique used by humanoid companies.
 /// It's advantageous when moving around and continually solving IK at a high rate: you simply feed in the previous
@@ -122,7 +131,7 @@ void PinocchioSolver::calculate_maximum_reach_from_urdf() {
 ///
 /// @param ee_pose 
 /// @param guess_elbow_joint 
-/// @return the joint angles in [rad]
+/// @return true/false for success/failure of finding valid solution
 bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
 
     JointAnglesRad original_q_solution = q_solution; // Store a copy of the original input: if IK fails, we return what was passed in
@@ -147,7 +156,7 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
 
     // Initialize q with our shoulder guess, elbow guess, wrist guess
     Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
-    for (int i = 0; i < std::min(3, (int)model_.nq); ++i) {
+    for (int i = 0; i < model_.nq; ++i) {
         q[i] = q_guess[i];
     }
 
@@ -165,7 +174,14 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
         pinocchio::forwardKinematics(model_, data_, q);
         pinocchio::updateFramePlacement(model_, data_, ee_frame_id_);
 
-        // ---- Calculate the spatial error between current ee and target ee ----
+        // ---- Calculate a linear and angular velocity, which quantifies the error between current ee and target ee ----
+        // This measure of error has two uses: 1) indicating success, or 2) as a value to to solve for q_dot_step.
+        // Regarding 2), J * q_dot_step = linear and angular velocity
+        // Solving for q_dot_step with the basic method of pseudoinverse, you get:  q_dot_step = J.T(JJ.T)^-1         *   (linear vel angular vel)
+        // Solving with LM which makes q_dot_step smaller near singularities:       q_dot_step = J.T(JJ.T + lambda*I)^-1 *(linear vel angular vel)
+        //
+        // After solving for q_dot_step, we just keep adding that to the guess, until the end effector is close to ee_target.
+        //
         const pinocchio::SE3 world_T_current = data_.oMf[ee_frame_id_]; // oMf: Origin to Frame
         const pinocchio::SE3 current_T_target = world_T_current.actInv(world_T_target); // current_T_target = (world_T_current)^-1 * world_T_target
         // You can't just subtract two rotation matrices or T matrices: they exist on a manifold (ie. two points on the earth cannot be connected
@@ -173,7 +189,7 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
         // But you can use the matrix logarithm to convert to 6 numbers: log(current_T_target) = [XYZ velocity, angular velocity]. 
         // This [XYZ velocity, angular velocity] quantifies the difference as a velocity in one unit of time.
         // If the velocity is large, current_T_target is a massive rotation matrix + massive translation, and small velocity means small T.
-        Eigen::VectorXd linear_vel_angular_vel_error = pinocchio::log6(current_T_target).toVector();
+        Eigen::VectorXd linear_vel_angular_vel_error = pinocchio::log6(current_T_target).toVector(); // a velocity which is a measure of error
 
         // But we need to Slice this 6D velocity error [vx, vy, vz, wx, wy, wz] down to strictly planar dimensions [vx, vy, wz], indexes 0, 1, and 5.
         Eigen::Vector3d linear_vel_angular_vel_error_planar_only;
@@ -183,18 +199,37 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
 
         // ---- SUCCESS CHECK ----
         // Check if we have reached the target ee
-        // if (linear_vel_angular_vel_error.norm() < error_tol) {
         if (linear_vel_angular_vel_error_planar_only.norm() < error_tol) {
-            
-            // Package and wrap-to-pi the results
-            for (int j = 0; j < std::min(3, (int)model_.nq); ++j) {
-                // Wrap angles strictly between [-pi, pi]
+
+            bool limit_violation = false;
+            std::vector<double> temp_wrapped_angles(model_.nq);
+
+            for (int j = 0; j < model_.nq; ++j) {
+                // Wrap angles strictly between [-pi pi]
                 double angle = std::fmod(q[j], 2.0 * M_PI);
                 if (angle > M_PI) angle -= 2.0 * M_PI;
                 if (angle < -M_PI) angle += 2.0 * M_PI;
-                q_solution[j] = angle;
+
+                temp_wrapped_angles.at(j) = angle;
+
+                // Check against Pinocchio's automatically parsed URDF limits
+                if (angle < model_.lowerPositionLimit[j] || angle > model_.upperPositionLimit[j]) {
+                    limit_violation = true;
+                    break; // Behavior: Don't finish checking if one joint limit violation is found
+                }
             }
-            
+
+            // Handle failure due to limits
+            if (limit_violation == true) {
+                q_solution = original_q_solution; // Return untouched
+                status = IKStatus::JOINT_LIMIT_VIOLATION;
+                return false;
+            }
+
+            for (int j = 0; j < model_.nq; ++j) {
+                q_solution.at(j) = temp_wrapped_angles.at(j);
+            }
+
             status = IKStatus::SUCCESS;
             return true;
         }

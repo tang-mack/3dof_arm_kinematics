@@ -15,7 +15,7 @@ struct AnalyticalSolverConfig {
     std::string link_length_source; // Where to pull link lengths from: "urdf" or "yaml"
     std::vector<double> link_lengths;
     bool use_lookup_table_speedup;
-    std::vector<std::vector<double>> joint_limits;
+    std::vector<std::vector<double>> joint_limits; // [proximal ... distal] [lower_lim upper_lim]. Ex: vec.at(shoulder index is 0).at(0) = shoulder limit -178 degrees
 
 };
 

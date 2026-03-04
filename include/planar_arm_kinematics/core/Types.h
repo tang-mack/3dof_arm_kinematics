@@ -17,6 +17,7 @@ namespace planar_arm {
         SUCCESS,
         OUT_OF_REACH,           // End-effector target is outside the reachable workspace
         MAX_ITERATIONS_REACHED, // Numerical specific: Iterative solver timed out
+        JOINT_LIMIT_VIOLATION,  // Example: IK target is only possible outside the joint limits (ie. [-178 178] robot limit, -178.5 deg calculated by IK)
         OTHER_ERROR
     };
     

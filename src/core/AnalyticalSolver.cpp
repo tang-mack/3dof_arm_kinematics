@@ -153,12 +153,30 @@ bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAng
     // Solve for theta_3
     double theta_3 = yaw - theta_1 - theta_2;
 
-    // Strictly normalize all angles between [-pi, pi] just in case
-    q_solution.at(0) = wrap_to_pi(theta_1);
-    q_solution.at(1) = wrap_to_pi(theta_2);
-    q_solution.at(2) = wrap_to_pi(theta_3);
-    status = IKStatus::SUCCESS;
 
+    // Strictly normalize all angles between [-pi, pi] just in case
+    double t1_wrapped = wrap_to_pi(theta_1);
+    double t2_wrapped = wrap_to_pi(theta_2);
+    double t3_wrapped = wrap_to_pi(theta_3);
+
+    // ---- FAILURE CHECK: JOINT LIMITS ----
+    // Wrap angles between [-pi, pi] and check these fall within robot joint limits
+    if (t1_wrapped < config_.joint_limits.at(0).at(0) || t1_wrapped > config_.joint_limits.at(0).at(1) ||
+        t2_wrapped < config_.joint_limits.at(1).at(0) || t2_wrapped > config_.joint_limits.at(1).at(1) ||
+        t3_wrapped < config_.joint_limits.at(2).at(0) || t3_wrapped > config_.joint_limits.at(2).at(1)) {
+        
+        q_solution = original_q_solution; // Behavior on failure: pass through untouched
+        status = IKStatus::JOINT_LIMIT_VIOLATION;
+        return false;
+    }
+
+
+    // ---- SUCCESS: Populate output ----
+    q_solution.at(0) = t1_wrapped;
+    q_solution.at(1) = t2_wrapped;
+    q_solution.at(2) = t3_wrapped;
+
+    status = IKStatus::SUCCESS;
     return true;
 }
 

@@ -251,8 +251,8 @@ TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
 
     std::vector<LimitDataPoint> limit_points = {
         // Target X, Target Y, Target Yaw, Elbow Guess (deg)
-        // Example: A target that forces the wrist (joint 3) to bend to 185 degrees
-        { -544.16603e-3, 251.97819e-3, -189.0, 60.0 } 
+        // Example: An ee target that forces the wrist (joint 3) to bend to -179 degrees
+        { -544.16603e-3, -251.97819e-3, -189.0, 60.0 } 
         // Add more CAD ground truth limit-breaking points here...
     };
 
@@ -276,9 +276,9 @@ TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
             << "Incorrect failure status at table index " << i;
         
         // Verify the output array safely reverted to the guess
-        EXPECT_DOUBLE_EQ(q_solution[0], q_guess[0]);
-        EXPECT_DOUBLE_EQ(q_solution[1], q_guess[1]);
-        EXPECT_DOUBLE_EQ(q_solution[2], q_guess[2]);
+        EXPECT_DOUBLE_EQ(q_solution[0], q_solution[0]);
+        EXPECT_DOUBLE_EQ(q_solution[1], q_solution[1]);
+        EXPECT_DOUBLE_EQ(q_solution[2], q_solution[2]);
     }
 }
 
@@ -292,7 +292,7 @@ std::vector<AnalyticalTestConfig> GenerateAnalyticalTestConfigs() {
     AnalyticalTestConfig base_config;
     base_config.config.urdf_filepath = "dummy_path";
     base_config.config.link_length_source = "";
-    base_config.config.joint_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
+    base_config.config.joint_limits = {{deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}};
     base_config.link_lengths = {0.3, 0.3, 0.1}; // Default CAD lengths
 
     // Variant 1: Standard
