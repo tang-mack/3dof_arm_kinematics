@@ -198,6 +198,32 @@ TEST_P(PinocchioParameterizedTest, RandomizedFkIkCycle) {
     }
 }
 
+// Test 6: Out of Reach Target Validation
+TEST_P(PinocchioParameterizedTest, OutOfReachTarget) {
+    // Target a coordinate 5 meters away (robot max reach is 0.7m)
+    Pose_XY_Yaw impossible_target{5.0, 5.0, 0.0};
+    
+    // Provide a valid guess, and fill the solution array with sentinel garbage values
+    JointAnglesRad q_guess = {0.0, deg2rad(30.0), 0.0};
+    JointAnglesRad q_solution = {99.0, 99.0, 99.0};
+    JointAnglesRad q_solution_original = q_solution; // Store copy
+    IKStatus status;
+    
+    bool success = solver_->inverse_kinematics(impossible_target, q_solution, q_guess, status);
+    
+    // Verify the solver gracefully failed
+    EXPECT_FALSE(success);
+    
+    // Verify the status enum correctly identified the reason
+    EXPECT_EQ(status, IKStatus::OUT_OF_REACH);
+    
+    // Verify the output array safely reverted being completely untouched,
+    // rather than handing back NaNs or mathematical garbage.
+    EXPECT_DOUBLE_EQ(q_solution[0], q_solution_original[0]);
+    EXPECT_DOUBLE_EQ(q_solution[1], q_solution_original[1]);
+    EXPECT_DOUBLE_EQ(q_solution[2], q_solution_original[2]);
+}
+
 // Add more TEST_P blocks here for Inverse Kinematics, CAD validations, etc.
 // They will all automatically run against every configuration (see below for CONFIGURATION GENERATOR).
 

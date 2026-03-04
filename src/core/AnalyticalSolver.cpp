@@ -104,6 +104,8 @@ double AnalyticalSolver::wrap_to_pi(const double angle) const {
 bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
     // std::cout << "[AnalyticalSolver] inverse_kinematics called" << std::endl;
 
+    JointAnglesRad original_q_solution = q_solution; // Store what was passed in: if IK fails, we pass the answer back completely untouched.
+
     double L1 = model_.get_length(0);
     double L2 = model_.get_length(1);
     double L3 = model_.get_length(2);
@@ -124,7 +126,7 @@ bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAng
     // If the required geometry demands a triangle edge longer than physically possible, 
     // the arccos input will fall outside [-1, 1]. We allow a tiny epsilon for floating point math.
     if (arccos_input > 1.0 + 1e-6 || arccos_input < -1.0 - 1e-6) {
-        q_solution = q_guess; // Behavior on failure: q_solution passes through unchanged.
+        q_solution = original_q_solution; // Behavior on failure: q_solution passes through unchanged.
         status = IKStatus::OUT_OF_REACH;
         return false;
     }
