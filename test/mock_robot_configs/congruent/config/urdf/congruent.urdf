@@ -73,7 +73,7 @@
     <parent link="link_2"/>
     <child link="link_3"/>
     <origin xyz="300.0e-3 0.0 0.0" rpy="0.0 0.0 0.0" />
-    <axis xyz="0 -1 0" />
+    <axis xyz="0 0 1" />
     <limit lower="-3.106686" upper="3.106686" effort="100.0" velocity="10.0" />
     <dynamics damping="0.1" friction="0.0" />
   </joint>
@@ -107,7 +107,7 @@
     <parent link="link_3"/>
     <child link="link_4"/>
     <origin xyz="300.0e-3 0.0 0.0" rpy="0.0 0.0 0.0" />
-    <axis xyz="0 -1 0" />
+    <axis xyz="0 0 1" />
     <limit lower="-3.106686" upper="3.106686" effort="100.0" velocity="10.0" />
     <dynamics damping="0.0" friction="0.0" />
   </joint>
