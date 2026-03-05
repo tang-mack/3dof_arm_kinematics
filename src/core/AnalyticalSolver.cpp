@@ -13,13 +13,13 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
         
     yaml_reader_.load(yaml_filepath); // load() will throw if yaml does not exist
 
-    // 1. Parse Class-specific Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
+    // Parse Class-specific Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
     config_.link_length_source = yaml_reader_.get_class_specific_param<std::string>("AnalyticalSolver", "link_length_source"); // "urdf" or "yaml"
     std::cout << "link_length_source: " << config_.link_length_source << std::endl;
     config_.link_lengths = yaml_reader_.get_class_specific_param<std::vector<double>>("AnalyticalSolver", "link_lengths");
     config_.use_lookup_table_speedup = yaml_reader_.get_class_specific_param<bool>("AnalyticalSolver", "use_lookup_table_speedup");
 
-    // 2. Get URDF filepath if we're using it, std::nullopt otherwise
+    // Get URDF filepath if we're using it, std::nullopt otherwise
     if (config_.link_length_source == "urdf") {
         config_.urdf_filepath = yaml_reader_.get_global_param<std::string>("urdf_filepath");
     }
@@ -42,8 +42,8 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
 
     std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
 
-    // YAML overrides URDF link lengths logic
-    if (config_.link_length_source == "yaml") {
+    
+    if (config_.link_length_source == "yaml") { // YAML overrides URDF link lengths logic
         if (config_.link_lengths.size() == 3) {
 
             model_ = RobotModel(config_.link_lengths);
@@ -52,19 +52,13 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
             throw std::runtime_error("[AnalyticalSolver] YAML link_lengths must contain exactly 3 values.");
         }
     }
-    // URDF provides link lengths
-    else if (config_.link_length_source == "urdf") {
-        // --- PATH RESOLUTION WITHOUT ROS ---
-        // 1. Get the directory containing the YAML file
-        std::filesystem::path yaml_dir = std::filesystem::path(yaml_filepath).parent_path();
-        
-        // 2. Append the relative URDF path from the YAML config
-        std::filesystem::path absolute_urdf_path = yaml_dir / config_.urdf_filepath.value();
-        
+    else if (config_.link_length_source == "urdf") { // URDF provides link lengths
+
+        // --- URDF PATH RESOLUTION ---
+        std::filesystem::path yaml_dir = std::filesystem::path(yaml_filepath).parent_path(); // Get the directory containing the YAML file
+        std::filesystem::path absolute_urdf_path = yaml_dir / config_.urdf_filepath.value(); // Append the relative URDF path from the YAML config
         std::cout << "[AnalyticalSolver] Resolved absolute URDF path: " << absolute_urdf_path << std::endl;
-        
-        // 3. Pass the absolute string to the parser
-        auto lengths = MiniURDFParser::parse_link_lengths(absolute_urdf_path.string());
+        auto lengths = MiniURDFParser::parse_link_lengths(absolute_urdf_path.string()); // Pass the absolute string to the parser
         // ---------------------------------
 
         if (lengths.size() != 3) {
