@@ -91,9 +91,13 @@ if(BUILD_TESTING)
   ament_add_gtest(test_PinocchioSolver test/test_PinocchioSolver.cpp)
   target_link_libraries(test_PinocchioSolver core_kinematics)
 
+  ament_add_gtest(test_KinematicSolverSimpleGeneralized test/test_KinematicSolverSimpleGeneralized.cpp)
+  target_link_libraries(test_KinematicSolverSimpleGeneralized core_kinematics)
+
   # To avoid hardcoding filepaths within test .cpp files: Use CMake to Inject the absolute path to the test/ directory as a macro named TEST_DIR
   target_compile_definitions(test_PinocchioSolver PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   target_compile_definitions(test_AnalyticalSolver PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(test_KinematicSolverSimpleGeneralized PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 endif()
 
