@@ -16,9 +16,9 @@ def generate_launch_description():
     )
 
     # 2. Declare the arguments so they can be passed via command line
-    theta1_arg = DeclareLaunchArgument('theta1', default_value='0.0', description='Joint angle 1 (rad)')
-    theta2_arg = DeclareLaunchArgument('theta2', default_value='0.0', description='Joint angle 2 (rad)')
-    theta3_arg = DeclareLaunchArgument('theta3', default_value='0.0', description='Joint angle 3 (rad)')
+    theta1_arg = DeclareLaunchArgument('theta1', default_value='0.6', description='Joint angle 1 (rad)')
+    theta2_arg = DeclareLaunchArgument('theta2', default_value='-1.2', description='Joint angle 2 (rad)')
+    theta3_arg = DeclareLaunchArgument('theta3', default_value='-0.2', description='Joint angle 3 (rad)')
 
     # 3. Define the FK Publisher Node
     fk_node = Node(

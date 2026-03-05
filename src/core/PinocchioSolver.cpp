@@ -244,14 +244,10 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
         J_planar.row(1) = J_local.row(1); // vy
         J_planar.row(2) = J_local.row(5); // wz
 
-        // // Compute the damped pseudo-inverse step
-        // // q_dot_step = J.T * (J * J.T + damping * I)^-1 * error
-        // pinocchio::Data::Matrix6 JJt; // J*J.T
-        // // JJt.noalias() = J_local * J_local.transpose();
-        // Eigen::MatrixXd JtJ = J_local.transpose() * J_local;
-        // JJt.diagonal().array() += damping;
-
-        // Compute the damped left pseudo-inverse step using the planar matrices
+        // Compute the damped *left* pseudo-inverse step using the planar matrices
+        // Right pseudo-inverse is for fat jacobians, more knowns than equations, infinite solutions (ie. 7 DOF arm)
+        // Left pseudo-inverse required for under-actuated systems.
+        // We have an exaclty actuated system, the left pseudo-inverse is safer if fewer DOFs are available.
         Eigen::MatrixXd JtJ = J_planar.transpose() * J_planar;
         JtJ.diagonal().array() += damping;
 

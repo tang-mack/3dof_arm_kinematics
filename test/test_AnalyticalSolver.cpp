@@ -8,6 +8,11 @@
 #include <memory>
 #include <string>
 
+// Fallback just in case the CMake macro fails to inject
+#ifndef PKG_SRC_DIR
+#define PKG_SRC_DIR "."
+#endif
+
 using namespace planar_arm;
 
 // Declared before the tests
@@ -21,6 +26,8 @@ inline double deg2rad(double deg) {
 // ==============================================================================
 struct AnalyticalTestConfig {
     std::string test_variant_name;
+    bool use_yaml_constructor;
+    std::string yaml_filepath;
     AnalyticalSolverConfig config;
     std::vector<double> link_lengths;
 
@@ -41,8 +48,17 @@ protected:
 
     void SetUp() override {
         const auto& params = GetParam();
-        model_ = std::make_unique<RobotModel>(params.link_lengths);
-        solver_ = std::make_unique<AnalyticalSolver>(params.config, *model_);
+
+        // Behavior to test both AnalyticalSolver constructors depending on variant
+        if (params.use_yaml_constructor == true) {
+            // Call constructor with Yaml
+            solver_ = std::make_unique<AnalyticalSolver>(params.yaml_filepath);
+        }
+        else {
+            // Call constructor with config struct inject and RobotModel inject
+            model_ = std::make_unique<RobotModel>(params.link_lengths);
+            solver_ = std::make_unique<AnalyticalSolver>(params.config, *model_);
+        }
     }
 };
 
@@ -52,6 +68,10 @@ protected:
 
 // Test 1: Forward Kinematics at Zero Configuration
 TEST_P(AnalyticalParameterizedTest, ForwardKinematicsZeroAngles) {
+    if (GetParam().test_variant_name == "RealYaml") {
+        GTEST_SKIP() << "Skipping ForwardKinematicsZeroAngles for RealYaml:  we rely on putting robots into mock_robot_configs folder for this test.";
+    }
+
     // Set all joint angles to 0.0 radians
     JointAnglesRad joints = {0.0, 0.0, 0.0};
     
@@ -63,25 +83,31 @@ TEST_P(AnalyticalParameterizedTest, ForwardKinematicsZeroAngles) {
     EXPECT_DOUBLE_EQ(pose.yaw, 0.0);
 }
 
-// Test 2: Inverse Kinematics from the Zero Configuration
+// Test 2: Inverse Kinematics from the Zero Configuration - Dynamic for changing Yaml link lengths
+// Note: This test still runs if Yaml link lengths are changed. Checks IK( FK(all zero joints) ) == all zero joints.
 TEST_P(AnalyticalParameterizedTest, InverseKinematicsZeroConfiguration) {
-    // Target the fully extended position
-    Pose_XY_Yaw target{0.7, 0.0, 0.0};
 
-    // Call the solver
+    // 1. DYNAMIC TARGET GENERATION: 
+    // Ask the solver where the arm is when fully extended, regardless of link lengths
+    JointAnglesRad zero_angles = {0.0, 0.0, 0.0};
+    Pose_XY_Yaw dynamic_target = solver_->forward_kinematics(zero_angles);
+
+    // 2. Call the IK solver
     JointAnglesRad q_guess = {0.0, deg2rad(30.0), 0.0}; 
-    JointAnglesRad q_solution = {0.0, 0.0, 0.0};
+    JointAnglesRad q_solution = {99.0, 99.0, 99.0}; // Sentinel values
     IKStatus status;
-    bool success = solver_->inverse_kinematics(target, q_solution, q_guess, status);
+    bool success = solver_->inverse_kinematics(dynamic_target, q_solution, q_guess, status);
 
     // Verify the solver successfully found a solution
     EXPECT_TRUE(success);
     EXPECT_EQ(status, IKStatus::SUCCESS);
     
     // The angles required to reach this should all be 0.0
-    EXPECT_DOUBLE_EQ(q_solution[0], 0.0);
-    EXPECT_DOUBLE_EQ(q_solution[1], 0.0);
-    EXPECT_DOUBLE_EQ(q_solution[2], 0.0);
+    // Rationale for using EXPECT_NEAR instead of EXPECT_DOUBLE_EQ: chaining together std::cos, std::sin, std::acos,
+    // can cause numerical error. 1e-5 radians is decent.
+    EXPECT_NEAR(q_solution[0], 0.0, 1e-5);
+    EXPECT_NEAR(q_solution[1], 0.0, 1e-5);
+    EXPECT_NEAR(q_solution[2], 0.0, 1e-5);
 }
 
 // Struct to hold CAD ground truth data points
@@ -106,6 +132,10 @@ std::vector<CadDataPoint> get_cad_points() {
 
 // Test 3: CAD Ground Truth Validation, Single Points (Table Format)
 TEST_P(AnalyticalParameterizedTest, CadValidationPoints) {
+    if (GetParam().test_variant_name == "RealYaml") {
+        GTEST_SKIP() << "Skipping fixed CAD Ground Truth tests for FK the RealYaml:  we rely on putting robots into mock_robot_configs folder for this test.";
+    }
+
     std::vector<CadDataPoint> cad_points = get_cad_points();
 
     // Run every row in the table through the solver
@@ -130,6 +160,10 @@ TEST_P(AnalyticalParameterizedTest, CadValidationPoints) {
 
 // Test 4: Inverse Kinematics CAD Ground Truth Validation
 TEST_P(AnalyticalParameterizedTest, InverseKinematicsCadValidation) {
+    if (GetParam().test_variant_name == "RealYaml") {
+        GTEST_SKIP() << "Skipping fixed CAD Ground Truth tests for IK for the RealYaml:  we rely on putting robots into mock_robot_configs folder for this test.";
+    }
+
     std::vector<CadDataPoint> cad_points = get_cad_points();
 
     // Run every row in the table through the IK solver
@@ -234,6 +268,10 @@ TEST_P(AnalyticalParameterizedTest, OutOfReachTarget) {
 
 // Test 7: Joint Limit Violation Validation
 TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
+    if (GetParam().test_variant_name == "RealYaml") {
+        GTEST_SKIP() << "Skipping JointLimitViolation for RealYaml: joint breaking CAD points are *specific* to a certain robot, we rely on putting robots into mock_robot_configs folder for this test.";
+    }
+
     // Struct to hold CAD data points that are physically reachable (within 0.7m or total robot arm length)
     // but mathematically require violating the (ie. [-178, 178]) degree joint limits.
     //
@@ -289,23 +327,35 @@ TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
 // 4. CONFIGURATION GENERATOR
 // ==============================================================================
 std::vector<AnalyticalTestConfig> GenerateAnalyticalTestConfigs() {
-    AnalyticalTestConfig base_config;
-    base_config.config.urdf_filepath = "dummy_path";
-    base_config.config.link_length_source = "";
-    base_config.config.joint_limits = {{deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}};
-    base_config.link_lengths = {0.3, 0.3, 0.1}; // Default CAD lengths
+    std::string pkg_dir = PKG_SRC_DIR; // Ensure this macro is defined at the top of your file!
+    std::vector<AnalyticalTestConfig> configs;
 
-    // Variant 1: Standard
-    AnalyticalTestConfig standard = base_config;
-    standard.test_variant_name = "StandardConfig";
+    // Variant 1: Mock YAML (The Anchor for CAD tests)
+    AnalyticalTestConfig mock_yaml;
+    mock_yaml.test_variant_name = "MockCongruentYaml";
+    mock_yaml.use_yaml_constructor = true;
+    mock_yaml.yaml_filepath = pkg_dir + "/test/mock_robot_configs/congruent/config/kinematics.yaml";
+    configs.push_back(mock_yaml);
+
+    // Variant 2: Real YAML (The Physical Robot)
+    AnalyticalTestConfig real_yaml;
+    real_yaml.test_variant_name = "RealYaml";
+    real_yaml.use_yaml_constructor = true;
+    real_yaml.yaml_filepath = pkg_dir + "/include/planar_arm_kinematics/config/kinematics.yaml";
+    configs.push_back(real_yaml);
+
+    // Variant 3: Standard Struct Injection (Testing the raw math with CAD defaults)
+    AnalyticalTestConfig standard;
+    standard.test_variant_name = "MockStructStandard";
+    standard.use_yaml_constructor = false;
+    standard.config.urdf_filepath = "dummy_path";
+    standard.config.link_length_source = "";
     standard.config.use_lookup_table_speedup = false;
+    standard.config.joint_limits = {{deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}};
+    standard.link_lengths = {0.3, 0.3, 0.1}; 
+    configs.push_back(standard);
 
-    // Variant 2: Lookup Table Speedup
-    AnalyticalTestConfig lookup_speedup = base_config;
-    lookup_speedup.test_variant_name = "LookupSpeedupConfig";
-    lookup_speedup.config.use_lookup_table_speedup = true;
-
-    return {standard, lookup_speedup};
+    return configs;
 }
 
 // Bind the generator to the Fixture

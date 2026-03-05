@@ -15,6 +15,7 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
 
     // 1. Parse Class-specific Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
     config_.link_length_source = yaml_reader_.get_class_specific_param<std::string>("AnalyticalSolver", "link_length_source"); // "urdf" or "yaml"
+    std::cout << "link_length_source: " << config_.link_length_source << std::endl;
     config_.link_lengths = yaml_reader_.get_class_specific_param<std::vector<double>>("AnalyticalSolver", "link_lengths");
     config_.use_lookup_table_speedup = yaml_reader_.get_class_specific_param<bool>("AnalyticalSolver", "use_lookup_table_speedup");
 
@@ -30,8 +31,14 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
     }
 
     // Parse Joint Limits from Yaml
-    std::vector<std::vector<double>> default_limits = {{-178.0, 178.0}, {-178.0, 178.0}, {-178.0, 178.0}};
-    config_.joint_limits = yaml_reader_.get_class_specific_param<std::vector<std::vector<double>>>("AnalyticalSolver", "joint_limits");
+    auto limits_deg = yaml_reader_.get_class_specific_param<std::vector<std::vector<double>>>("AnalyticalSolver", "joint_limits");
+    config_.joint_limits.clear();
+    config_.joint_limits.resize(limits_deg.size());
+    
+    // Convert each joint's limits from degrees to radians
+    for (size_t i = 0; i < limits_deg.size(); ++i) {
+        config_.joint_limits.at(i) = { limits_deg.at(i).at(0) * M_PI / 180.0, limits_deg.at(i).at(1) * M_PI / 180.0 };
+    }
 
     std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
 

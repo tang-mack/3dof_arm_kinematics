@@ -4,7 +4,7 @@
 urdf_filepath: "urdf/planar_arm.urdf"  # Must be relative to kinematics.yaml itself
 
 AnalyticalSolver:
-  link_length_source: "urdf"  # Pick urdf or yaml here
+  link_length_source: "yaml"  # Pick urdf or yaml here
 
   # Link lengths (only used if yaml is selected above)
   link_lengths: [0.3, 0.3, 0.1]  # L1, L2, L3
@@ -19,3 +19,4 @@ AnalyticalSolver:
 
 PinocchioSolver:
   use_lookup_table_speedup: false
+  # Note: no joint limits here: PinocchioSolver parses joint limits from URDF

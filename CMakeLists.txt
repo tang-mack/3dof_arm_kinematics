@@ -93,6 +93,7 @@ if(BUILD_TESTING)
 
   # To avoid hardcoding filepaths within test .cpp files: Use CMake to Inject the absolute path to the test/ directory as a macro named TEST_DIR
   target_compile_definitions(test_PinocchioSolver PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(test_AnalyticalSolver PRIVATE PKG_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 endif()
 
