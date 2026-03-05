@@ -24,16 +24,14 @@ inline double deg2rad(double deg) {
 // 1. PARAMETER DEFINITION
 // Define a struct that holds all the ways we want to initialize the solver.
 // ==============================================================================
-struct AnalyticalTestConfig {
+struct AnalyticalTestSettings {
     std::string test_variant_name;
     bool use_yaml_constructor;
     std::string yaml_filepath;
-    AnalyticalSolverConfig config;
-    std::vector<double> link_lengths;
+    AnalyticalSolverConfig config; // The actual config struct to inject into the solver
 
-    // Add this to make GTest output readable! Avoids very long raw hex of this struct.
-    friend std::ostream& operator<<(std::ostream& os, const AnalyticalTestConfig& config) {
-        return os << config.test_variant_name;
+    friend std::ostream& operator<<(std::ostream& os, const AnalyticalTestSettings& settings) {
+        return os << settings.test_variant_name;
     }
 };
 
@@ -41,26 +39,25 @@ struct AnalyticalTestConfig {
 // 2. THE TEST FIXTURE
 // This runs automatically before every single TEST_P.
 // ==============================================================================
-class AnalyticalParameterizedTest : public ::testing::TestWithParam<AnalyticalTestConfig> {
-protected:
-    std::unique_ptr<RobotModel> model_;
-    std::unique_ptr<AnalyticalSolver> solver_;
-
-    void SetUp() override {
-        const auto& params = GetParam();
-
-        // Behavior to test both AnalyticalSolver constructors depending on variant
-        if (params.use_yaml_constructor == true) {
-            // Call constructor with Yaml
-            solver_ = std::make_unique<AnalyticalSolver>(params.yaml_filepath);
+class AnalyticalParameterizedTest : public ::testing::TestWithParam<AnalyticalTestSettings> {
+    protected:
+        std::unique_ptr<RobotModel> model_;
+        std::unique_ptr<AnalyticalSolver> solver_;
+    
+        void SetUp() override {
+            const auto& params = GetParam();
+    
+            if (params.use_yaml_constructor) {
+                // Call constructor with Yaml
+                solver_ = std::make_unique<AnalyticalSolver>(params.yaml_filepath);
+            }
+            else {
+                // Unpack the lengths strictly from the config struct being injected
+                model_ = std::make_unique<RobotModel>(params.config.link_lengths);
+                solver_ = std::make_unique<AnalyticalSolver>(params.config, *model_);
+            }
         }
-        else {
-            // Call constructor with config struct inject and RobotModel inject
-            model_ = std::make_unique<RobotModel>(params.link_lengths);
-            solver_ = std::make_unique<AnalyticalSolver>(params.config, *model_);
-        }
-    }
-};
+    };
 
 // ==============================================================================
 // 3. THE ACTUAL TEST LOGIC
@@ -326,33 +323,33 @@ TEST_P(AnalyticalParameterizedTest, JointLimitViolation) {
 // ==============================================================================
 // 4. CONFIGURATION GENERATOR
 // ==============================================================================
-std::vector<AnalyticalTestConfig> GenerateAnalyticalTestConfigs() {
+std::vector<AnalyticalTestSettings> GenerateAnalyticalTestConfigs() {
     std::string pkg_dir = PKG_SRC_DIR; // Ensure this macro is defined at the top of your file!
-    std::vector<AnalyticalTestConfig> configs;
+    std::vector<AnalyticalTestSettings> configs;
 
     // Variant 1: Mock YAML (The Anchor for CAD tests)
-    AnalyticalTestConfig mock_yaml;
+    AnalyticalTestSettings mock_yaml;
     mock_yaml.test_variant_name = "MockCongruentYaml";
     mock_yaml.use_yaml_constructor = true;
     mock_yaml.yaml_filepath = pkg_dir + "/test/mock_robot_configs/congruent/config/kinematics.yaml";
     configs.push_back(mock_yaml);
 
     // Variant 2: Real YAML (The Physical Robot)
-    AnalyticalTestConfig real_yaml;
+    AnalyticalTestSettings real_yaml;
     real_yaml.test_variant_name = "RealYaml";
     real_yaml.use_yaml_constructor = true;
     real_yaml.yaml_filepath = pkg_dir + "/include/planar_arm_kinematics/config/kinematics.yaml";
     configs.push_back(real_yaml);
 
-    // Variant 3: Standard Struct Injection (Testing the raw math with CAD defaults)
-    AnalyticalTestConfig standard;
+    // Variant 3: No YAML, Standard Struct Injection (Testing the raw math with CAD defaults)
+    AnalyticalTestSettings standard;
     standard.test_variant_name = "MockStructStandard";
     standard.use_yaml_constructor = false;
-    standard.config.urdf_filepath = "dummy_path";
+    standard.config.urdf_filepath = std::nullopt;
     standard.config.link_length_source = "";
     standard.config.use_lookup_table_speedup = false;
     standard.config.joint_limits = {{deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}, {deg2rad(-178.0), deg2rad(178.0)}};
-    standard.link_lengths = {0.3, 0.3, 0.1}; 
+    standard.config.link_lengths = {0.3, 0.3, 0.1}; 
     configs.push_back(standard);
 
     return configs;
@@ -363,7 +360,7 @@ INSTANTIATE_TEST_SUITE_P(
     AnalyticalVariants,
     AnalyticalParameterizedTest,
     ::testing::ValuesIn(GenerateAnalyticalTestConfigs()),
-    [](const ::testing::TestParamInfo<AnalyticalTestConfig>& info) {
+    [](const ::testing::TestParamInfo<AnalyticalTestSettings>& info) {
         return info.param.test_variant_name; 
     }
 );

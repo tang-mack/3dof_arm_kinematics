@@ -17,14 +17,16 @@ namespace planar_arm {
 AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
     load_config_from_yaml(yaml_filepath);
     initialize_robot_model(yaml_filepath);
-    std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
+    // std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
 }
 
 // Constructor 2: Struct-based constructor mainly for Unit Tests
 AnalyticalSolver::AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model)
     : config_(config), model_(model)
 {
-    // Do nothing
+    if (config_.link_lengths.size() != 3) {
+        throw std::invalid_argument("[AnalyticalSolver] config.link_lengths must contain exactly 3 values.");
+    }
 }
 
 // ==============================================================================
@@ -62,13 +64,10 @@ void AnalyticalSolver::load_config_from_yaml(const std::string& yaml_filepath) {
 
 void AnalyticalSolver::initialize_robot_model(const std::string& yaml_filepath) {
     if (config_.link_length_source == "yaml") { // YAML overrides URDF link lengths logic
-        if (config_.link_lengths.size() == 3) {
-
+        if (config_.link_lengths.size() == 3)
             model_ = RobotModel(config_.link_lengths);
-
-        } else {
+        else
             throw std::runtime_error("[AnalyticalSolver] YAML link_lengths must contain exactly 3 values.");
-        }
     }
     else if (config_.link_length_source == "urdf") { // URDF provides link lengths
 
@@ -122,8 +121,7 @@ Pose_XY_Yaw AnalyticalSolver::forward_kinematics(const JointAnglesRad& joint_ang
 // ==============================================================================
 
 bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
-    // std::cout << "[AnalyticalSolver] inverse_kinematics called" << std::endl;
-
+    
     JointAnglesRad original_q_solution = q_solution; // Store what was passed in: if IK fails, we pass the answer back completely untouched.
 
     double L1 = model_.get_length(0);

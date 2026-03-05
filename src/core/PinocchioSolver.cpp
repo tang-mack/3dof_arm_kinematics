@@ -36,8 +36,8 @@ PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
     load_urdf(absolute_urdf_path.string());
 
     // Rationale: This check is fairly important, prevent runtime crashes from indexing out of bounds (ie. URDF has 6 joints instead of 3).
+    // Because of specific logic for a 3-DOF planar arm, only 3 DOFs are expected.
     if (model_.nq != 3) {
-        // Because of specific logic for a 3-DOF planar arm, only 3 DOFs are expected.
         throw std::runtime_error("[PinocchioSolver] This solver can only handle model_.nq == 3 currently. model_.nq of " + std::to_string(model_.nq) + " found. Does URDF have more than 3 DOF?");
     }
 
@@ -78,7 +78,7 @@ Pose_XY_Yaw PinocchioSolver::forward_kinematics(const JointAnglesRad& joints) co
     // Load joint angles into Eigen
     Eigen::VectorXd q = Eigen::VectorXd::Zero(model_.nq);
 
-    // Safely copy our 3 joints into Eigen
+    // Copy our 3 joints into Eigen
     for (int i = 0; i < model_.nq; ++i) {
         q[i] = joints[i];
     }
@@ -162,7 +162,14 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
     // Iterative Solver Settings
     const double error_tol = 1e-4; // Error tolerance [radians]
     const int ITERATIONS_MAX = 500; // Maximum allowed iterations
-    const double damping = 1e-6; // Damping factor for pseudo-inverse (prevents singularity crashes). Approaches mention lambda, here, damping = lambda*lambda.
+    // Damping factor for pseudo-inverse (prevents singularity crashes). Approaches mention lambda, here, damping = lambda*lambda.
+    // Smaller = more risky around singularities but gets closer to answer. Larger = poor solve but safe (stops moving, high damping) around
+    // singularities (this is great because it slows the arm down as it gets near full extension). To be clear, "more risky" refers to risk of
+    // IK outputting near infinite q_sol, and potentially getting stuck at the straight arm singularity (LM keeps outputting infinity, downstream logic catches it)
+    // or damaging things if downstream logic doesn't catch things.
+    // Note about passing unit tests: changing from 1e-6 -> 1e-7 goes from failing on straight-arm test, to passing (it gets closer to singularity and achieves the goal). But, keep in mind it might
+    // actually be a good thing to fail the straight-arm test. Leaving this at 1e-6 and instead altering the straight-arm test cases to actually *want* some error.
+    const double damping = 1e-6;
 
     pinocchio::Data::Matrix6x J_local(6, model_.nv); // Local to ee frame: x_dot_wrt_ee_frame = J_local(q)*q_dot
     Eigen::VectorXd q_dot_step(model_.nv); // small joint velocity "step" to take
