@@ -67,7 +67,7 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
 
         model_ = RobotModel(lengths); // Set lengths based on URDF
 
-        model_.print_link_lengths();
+        // model_.print_link_lengths();
     }
     
 }
