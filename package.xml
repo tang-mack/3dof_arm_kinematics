@@ -3,7 +3,7 @@
 <package format="3">
   <name>planar_arm_kinematics</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>A 3-DOF planar Forward and Inverse Kinematics Library with Launchable ROS Nodes</description>
   <maintainer email="mt@todo.todo">mt</maintainer>
   <license>TODO: License declaration</license>
 

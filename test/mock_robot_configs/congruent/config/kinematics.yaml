@@ -1,7 +1,16 @@
 # kinematics.yaml
 # Note: This file defines parameters used by the following classes - AnalyticalSolver, PinocchioSolver
 
+# Note: AnalyticalSolver spawns from purely the Yaml, or Yaml+URDF (or from a config struct injected directly).
+
+
+########### Global Parameters
+
 urdf_filepath: "urdf/congruent.urdf"  # Must be relative to kinematics.yaml itself
+
+
+
+########### Class Specific Parameters
 
 AnalyticalSolver:
   link_length_source: "urdf"  # Pick urdf or yaml here

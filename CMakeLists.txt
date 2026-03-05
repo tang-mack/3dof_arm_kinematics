@@ -17,7 +17,7 @@ find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
 find_package(pinocchio REQUIRED) # Needed for PinochioSolver class
 
 # -----------------------------------------------------------
-# 1. Build the Pure C++ Core Library
+# 1. Build the Pure C++ Core Library (Non-ROS related)/ Note: "core" folder contains non-ros related files, "ros" folder contains ros related files.
 # -----------------------------------------------------------
 add_library(core_kinematics src/core/AnalyticalSolver.cpp src/core/PinocchioSolver.cpp src/core/MiniURDFParser.cpp)
 target_include_directories(core_kinematics PUBLIC
