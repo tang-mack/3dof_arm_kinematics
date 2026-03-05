@@ -1,3 +1,21 @@
+"""
+Launch file for evaluating the Planar Arm Kinematics solvers.
+
+Convenient Examples:
+
+1. Launch with default settings (AnalyticalSolver, default angles):
+   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py
+
+2. Explicitly launch using the Pinocchio numerical solver:
+   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver
+
+3. Explicitly launch using the Analytical solver:
+   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=AnalyticalSolver
+
+4. Launch the Pinocchio solver and command custom joint angles:
+   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver theta1:=1.0 theta2:=-0.5 theta3:=0.2
+"""
+
 import os
 from ament_index_python.packages import get_package_share_directory
 
