@@ -1,5 +1,7 @@
 #pragma once
 
+#include "planar_arm_kinematics/core/KinematicSolver.h"
+
 #include "planar_arm_kinematics/core/Types.h"
 #include "planar_arm_kinematics/core/RobotModel.h"
 
@@ -19,8 +21,8 @@ struct AnalyticalSolverConfig {
 
 };
 
-// Custom FK/IK Math Backend (analytical solver)
-class AnalyticalSolver {
+/// @brief FK/IK Analytical Math Backend
+class AnalyticalSolver : public KinematicSolver {
 public:
     /// @brief Typical usage: Fill out config struct using yaml file
     explicit AnalyticalSolver(const std::string& yaml_filepath);
@@ -28,8 +30,9 @@ public:
     /// @ brief Do not use yaml to populate config struct: inject config struct directly
     explicit AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model);
 
-    Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joint_angles) const;
-    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const;
+    Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joint_angles) const override;
+
+    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const override;
 
 private:
     /// @brief Wraps angle to [-pi to pi]
@@ -42,7 +45,6 @@ private:
 
     // Data members
     RobotModel model_;
-
 
 };
 

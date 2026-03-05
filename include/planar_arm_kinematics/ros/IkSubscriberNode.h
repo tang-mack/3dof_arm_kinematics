@@ -2,16 +2,10 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose2_d.hpp>
-#include "planar_arm_kinematics/core/Kinematics.h"
+#include <memory>
+#include "planar_arm_kinematics/core/KinematicSolver.h"
 
 namespace planar_arm {
-
-// ==========================================================
-// COMPILE-TIME SOLVER SELECTION
-// Change 'AnalyticalSolver' to 'PinocchioSolver' to switch backends
-using ActiveSolverBackend = AnalyticalSolver; 
-// using ActiveSolverBackend = PinocchioSolver; 
-// ==========================================================
 
 class IkSubscriberNode : public rclcpp::Node {
 public:
@@ -21,7 +15,9 @@ private:
     void pose_callback(const geometry_msgs::msg::Pose2D::SharedPtr msg);
 
     rclcpp::Subscription<geometry_msgs::msg::Pose2D>::SharedPtr subscription_;
-    Kinematics<ActiveSolverBackend> kinematics_;
+
+    std::unique_ptr<KinematicSolver> solver_;
+
     JointAnglesRad previous_joints_;
 };
 

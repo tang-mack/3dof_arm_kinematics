@@ -20,6 +20,8 @@ def generate_launch_description():
     theta2_arg = DeclareLaunchArgument('theta2', default_value='-1.2', description='Joint angle 2 (rad)')
     theta3_arg = DeclareLaunchArgument('theta3', default_value='-0.2', description='Joint angle 3 (rad)')
 
+    solver_arg = DeclareLaunchArgument('solver_backend', default_value='AnalyticalSolver', description='Which backend to use, example: AnalyticalSolver or PinocchioSolver')
+
     # 3. Define the FK Publisher Node
     fk_node = Node(
         package='planar_arm_kinematics',
@@ -30,6 +32,7 @@ def generate_launch_description():
             'theta2': LaunchConfiguration('theta2'),
             'theta3': LaunchConfiguration('theta3'),
             'yaml_filepath': config_file,
+            'solver_backend': LaunchConfiguration('solver_backend')
         }],
         output='screen'
     )
@@ -39,7 +42,10 @@ def generate_launch_description():
         package='planar_arm_kinematics',
         executable='ik_subscriber_node',
         name='ik_subscriber_node',
-        parameters=[{'yaml_filepath': config_file}],
+        parameters=[{
+            'yaml_filepath': config_file,
+            'solver_backend': LaunchConfiguration('solver_backend')
+        }],
         output='screen'
     )
 
@@ -48,6 +54,7 @@ def generate_launch_description():
         theta1_arg,
         theta2_arg,
         theta3_arg,
+        solver_arg,
         fk_node,
         ik_node
     ])

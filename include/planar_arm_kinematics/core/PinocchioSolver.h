@@ -1,5 +1,7 @@
 #pragma once
 
+#include "planar_arm_kinematics/core/KinematicSolver.h"
+
 #include "planar_arm_kinematics/core/Types.h"
 #include <string>
 
@@ -22,13 +24,13 @@ struct PinocchioSolverConfig {
 // Usage Example:
 //      Kinematics<PinocchioSolver> kin_;
 //      kin_.compute_ik(target_pose, previous_joints)
-class PinocchioSolver {
+class PinocchioSolver : public KinematicSolver {
 public:
     explicit PinocchioSolver(const std::string& yaml_filepath);
     explicit PinocchioSolver(const PinocchioSolverConfig& config);
     
-    Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joints) const;
-    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const;
+    Pose_XY_Yaw forward_kinematics(const JointAnglesRad& joints) const override;
+    bool inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const override;
 
 private:
     void load_urdf(const std::string& absolute_urdf_path);

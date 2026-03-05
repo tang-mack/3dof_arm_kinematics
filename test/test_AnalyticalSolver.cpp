@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "planar_arm_kinematics/core/Kinematics.h"
+#include "planar_arm_kinematics/core/KinematicSolver.h"
 #include "planar_arm_kinematics/core/AnalyticalSolver.h"
 #include "planar_arm_kinematics/core/RobotModel.h"
 #include <cmath>
