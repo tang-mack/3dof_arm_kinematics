@@ -8,9 +8,30 @@
 
 namespace planar_arm {
 
-// Constructor 1: Yaml-based constructor for typical usage
+// ==============================================================================
+// 1. CONSTRUCTORS
+// ==============================================================================
+
+// Constructor 1 (typical): Yaml-based constructor
+// This class can be spawned purely from a yaml file, or a yaml+URDF file.
 AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
-        
+    load_config_from_yaml(yaml_filepath);
+    initialize_robot_model(yaml_filepath);
+    std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
+}
+
+// Constructor 2: Struct-based constructor mainly for Unit Tests
+AnalyticalSolver::AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model)
+    : config_(config), model_(model)
+{
+    // Do nothing
+}
+
+// ==============================================================================
+// 2. PRIVATE HELPER FUNCTIONS
+// ==============================================================================
+
+void AnalyticalSolver::load_config_from_yaml(const std::string& yaml_filepath) {
     yaml_reader_.load(yaml_filepath); // load() will throw if yaml does not exist
 
     // Parse Class-specific Yaml Parameters (ie. nested under AnalyticalSolver within the yaml file)
@@ -20,29 +41,26 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
     config_.use_lookup_table_speedup = yaml_reader_.get_class_specific_param<bool>("AnalyticalSolver", "use_lookup_table_speedup");
 
     // Get URDF filepath if we're using it, std::nullopt otherwise
-    if (config_.link_length_source == "urdf") {
-        config_.urdf_filepath = yaml_reader_.get_global_param<std::string>("urdf_filepath");
-    }
-    else if (config_.link_length_source == "yaml") {
-        config_.urdf_filepath = std::nullopt;
-    }
-    else {
-        throw std::runtime_error("[AnalyticalSolver] YAML link_length_source must be urdf or yaml.");
-    }
+    if (config_.link_length_source == "urdf")       config_.urdf_filepath = yaml_reader_.get_global_param<std::string>("urdf_filepath");
+    else if (config_.link_length_source == "yaml")  config_.urdf_filepath = std::nullopt;
+    else                                            throw std::runtime_error("[AnalyticalSolver] YAML link_length_source must be urdf or yaml.");
 
     // Parse Joint Limits from Yaml
     auto limits_deg = yaml_reader_.get_class_specific_param<std::vector<std::vector<double>>>("AnalyticalSolver", "joint_limits");
     config_.joint_limits.clear();
     config_.joint_limits.resize(limits_deg.size());
-    
+
     // Convert each joint's limits from degrees to radians
     for (size_t i = 0; i < limits_deg.size(); ++i) {
         config_.joint_limits.at(i) = { limits_deg.at(i).at(0) * M_PI / 180.0, limits_deg.at(i).at(1) * M_PI / 180.0 };
     }
+}
 
-    std::cout << "[AnalyticalSolver] Yaml loaded successfully, filepath used was: " << yaml_filepath << std::endl;
+// ==============================================================================
+// 3. Initialize RobotModel
+// ==============================================================================
 
-    
+void AnalyticalSolver::initialize_robot_model(const std::string& yaml_filepath) {
     if (config_.link_length_source == "yaml") { // YAML overrides URDF link lengths logic
         if (config_.link_lengths.size() == 3) {
 
@@ -69,15 +87,15 @@ AnalyticalSolver::AnalyticalSolver(const std::string& yaml_filepath) {
 
         // model_.print_link_lengths();
     }
-    
 }
 
-// Constructor 2: Struct-based constructor mainly for Unit Tests
-AnalyticalSolver::AnalyticalSolver(const AnalyticalSolverConfig& config, const RobotModel& model)
-    : config_(config), model_(model)
-{
-    // Do nothing
+double AnalyticalSolver::wrap_to_pi(const double angle) const {
+    return std::atan2(std::sin(angle), std::cos(angle));
 }
+
+// ==============================================================================
+// 4. FORWARD KINEMATICS
+// ==============================================================================
 
 Pose_XY_Yaw AnalyticalSolver::forward_kinematics(const JointAnglesRad& joint_angles) const {
 
@@ -98,9 +116,10 @@ Pose_XY_Yaw AnalyticalSolver::forward_kinematics(const JointAnglesRad& joint_ang
     return pose;
 }
 
-double AnalyticalSolver::wrap_to_pi(const double angle) const {
-    return std::atan2(std::sin(angle), std::cos(angle));
-}
+
+// ==============================================================================
+// 5. INVERSE KINEMATICS
+// ==============================================================================
 
 bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAnglesRad& q_solution, const JointAnglesRad& q_guess, IKStatus& status) const {
     // std::cout << "[AnalyticalSolver] inverse_kinematics called" << std::endl;
@@ -153,7 +172,6 @@ bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAng
 
     // Solve for theta_3
     double theta_3 = yaw - theta_1 - theta_2;
-
 
     // Strictly normalize all angles between [-pi, pi] just in case
     double t1_wrapped = wrap_to_pi(theta_1);

@@ -7,8 +7,10 @@
 
 namespace planar_arm {
 
+/// @brief Intake joint angles, run FK, publish end-effector to topic
 class FkPublisherNode : public rclcpp::Node {
 public:
+    /// @brief Intake launch file parameters, pick solver backend, create publisher
     FkPublisherNode();
 
 private:

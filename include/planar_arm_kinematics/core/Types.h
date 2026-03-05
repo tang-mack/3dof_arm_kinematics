@@ -13,6 +13,7 @@ namespace planar_arm {
 
     using JointAnglesRad = std::array<double, 3>; // [rad] Joint angles, theta_1, theta_2, theta_3
 
+    /// @brief Extra error-handling information beyond true/false if needed
     enum class IKStatus {
         SUCCESS,
         OUT_OF_REACH,           // End-effector target is outside the reachable workspace

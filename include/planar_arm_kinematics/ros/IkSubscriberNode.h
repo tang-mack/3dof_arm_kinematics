@@ -7,8 +7,10 @@
 
 namespace planar_arm {
 
+/// @brief Solves IK repeatedly, prints to screen
 class IkSubscriberNode : public rclcpp::Node {
 public:
+    // Setup launch file parameters, pick solver backend, create subscription
     IkSubscriberNode();
 
 private:

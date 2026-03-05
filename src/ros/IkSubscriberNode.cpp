@@ -27,7 +27,6 @@ IkSubscriberNode::IkSubscriberNode() : Node("ik_subscriber_node") {
         throw std::runtime_error("Unknown solver_backend: " + solver_backend);
     }
 
-    // buffer queue of 10, drop oldest message (rationale: we care about recent data for IK)
     subscription_ = this->create_subscription<geometry_msgs::msg::Pose2D>(
         "end_effector_pose", 10, std::bind(&IkSubscriberNode::pose_callback, this, std::placeholders::_1));
 }

@@ -5,8 +5,7 @@
 #include "planar_arm_kinematics/core/Types.h"
 #include <string>
 
-// Pinocchio forward declarations (required before standard pinocchio includes)
-#include <pinocchio/fwd.hpp>
+#include <pinocchio/fwd.hpp> // Pinocchio forward declarations (required before standard pinocchio includes)
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/data.hpp>
 
@@ -16,14 +15,9 @@ struct PinocchioSolverConfig {
     // Parameters from Yaml file
     std::string urdf_filepath;
     bool use_lookup_table_speedup;
-
-    // Other Parameters
 };
 
-// Designed for usage with Kinematics class.
-// Usage Example:
-//      Kinematics<PinocchioSolver> kin_;
-//      kin_.compute_ik(target_pose, previous_joints)
+
 class PinocchioSolver : public KinematicSolver {
 public:
     explicit PinocchioSolver(const std::string& yaml_filepath);
@@ -43,7 +37,7 @@ private:
     mutable pinocchio::Data data_; // Mutable because Pinocchio writes intermediate math to this struct
     int ee_frame_id_; // Cached ID for end effector
 
-    double max_reach_{0.0}; // [m], for checking IK target out-of-reach
+    double max_reach_{0.0}; // [m] robot arm fully extended
 };
 
 } // namespace planar_arm

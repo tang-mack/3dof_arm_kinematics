@@ -4,7 +4,7 @@
 #include <pinocchio/parsers/urdf.hpp> // Pinocchio URDF parser
 
 #include <pinocchio/algorithm/kinematics.hpp> // forward kinematics
-#include <pinocchio/algorithm/frames.hpp> // forward kinematics
+#include <pinocchio/algorithm/frames.hpp>
 
 #include <pinocchio/algorithm/jacobian.hpp> // Add for inverse kinematics
 #include <pinocchio/algorithm/joint-configuration.hpp>
@@ -17,6 +17,7 @@
 #include <iostream>
 
 namespace planar_arm {
+
 
 // Constructor 1 (typical): Fill config struct using Yaml
 PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
@@ -61,14 +62,12 @@ void PinocchioSolver::load_urdf(const std::string& absolute_urdf_path) {
         throw std::runtime_error("[PinocchioSolver] Failed to parse URDF: " + absolute_urdf_path + " | " + e.what());
     }
 
-    // Initialize the working memory cache for the math algorithms
     data_ = pinocchio::Data(model_);
 
     // Look up the integer ID for the end-effector frame so we don't have to search for it during real-time loops
     const std::string ee_name = "end_effector";
     if (model_.existFrame(ee_name)) {
         ee_frame_id_ = model_.getFrameId(ee_name);
-        // std::cout << "[PinocchioSolver] Successfully loaded URDF. End-effector frame ID: " << ee_frame_id_ << std::endl;
     } else {
         throw std::runtime_error("[PinocchioSolver] Frame '" + ee_name + "' not found in URDF.");
     }
@@ -137,7 +136,7 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
     JointAnglesRad original_q_solution = q_solution; // Store a copy of the original input: if IK fails, we return what was passed in
 
     // ========================================================================
-    // ---- FAILURE CHECK: OUT OF REACH (KINEMATIC TREE PRE-CHECK) ----
+    // ---- FAILURE CHECK: OUT OF REACH ----
     // Calculate the straight-line distance (L2 norm) to the target from the base
     double target_distance = std::sqrt(ee_target.x * ee_target.x + ee_target.y * ee_target.y); // [m]
     
@@ -149,7 +148,7 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
     }
     // ========================================================================
 
-    // Build the world_T_target SE(3) transformation matrix
+    // Build the world_T_target SE(3) matrix
     Eigen::Matrix3d world_R_target = Eigen::AngleAxisd(ee_target.yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix(); // world_R_ee = Rotate by "yaw" around Z_world
     Eigen::Vector3d world_p_target(ee_target.x, ee_target.y, 0.0);
     pinocchio::SE3 world_T_target(world_R_target, world_p_target);
@@ -244,10 +243,7 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
         J_planar.row(1) = J_local.row(1); // vy
         J_planar.row(2) = J_local.row(5); // wz
 
-        // Compute the damped *left* pseudo-inverse step using the planar matrices
-        // Right pseudo-inverse is for fat jacobians, more knowns than equations, infinite solutions (ie. 7 DOF arm)
-        // Left pseudo-inverse required for under-actuated systems.
-        // We have an exaclty actuated system, the left pseudo-inverse is safer if fewer DOFs are available.
+        // Either left or right pseudoinverse can be used here, because we have an exactly actuated system (not under-actuated or redundant)
         Eigen::MatrixXd JtJ = J_planar.transpose() * J_planar;
         JtJ.diagonal().array() += damping;
 

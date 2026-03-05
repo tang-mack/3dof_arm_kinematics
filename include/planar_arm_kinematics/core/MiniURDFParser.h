@@ -8,6 +8,7 @@ namespace planar_arm {
 
 class MiniURDFParser {
 public:
+    /// @brief Take a look at the URDF, return a vector of link lengths 
     static std::vector<double> parse_link_lengths(const std::string& urdf_filepath);
 
 private:
