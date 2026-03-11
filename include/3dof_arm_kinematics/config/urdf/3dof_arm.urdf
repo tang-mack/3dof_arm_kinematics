@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="planar_arm">
+<robot name="arm_3dof">
 
   <link name="world" />
 

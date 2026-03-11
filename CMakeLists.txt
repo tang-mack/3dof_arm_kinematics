@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(planar_arm_kinematics)
+project(3dof_arm_kinematics)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -70,7 +70,7 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
 # Install the config folder containing yaml files to the ROS 2 share directory so the launch file can find it.
 # This is so yaml filepaths can be passed into the ROS node via the ROS launch files.
-install(DIRECTORY include/planar_arm_kinematics/config/ 
+install(DIRECTORY include/3dof_arm_kinematics/config/ 
   DESTINATION share/${PROJECT_NAME}/config
 )
 

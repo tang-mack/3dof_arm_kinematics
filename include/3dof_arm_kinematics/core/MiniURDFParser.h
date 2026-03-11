@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-namespace planar_arm {
+namespace arm_3dof {
 
 class MiniURDFParser {
 public:

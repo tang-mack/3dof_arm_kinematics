@@ -1,5 +1,5 @@
-#include "planar_arm_kinematics/core/PinocchioSolver.h"
-#include "planar_arm_kinematics/core/YamlReader.h"
+#include "3dof_arm_kinematics/core/PinocchioSolver.h"
+#include "3dof_arm_kinematics/core/YamlReader.h"
 
 #include <pinocchio/parsers/urdf.hpp> // Pinocchio URDF parser
 
@@ -16,7 +16,7 @@
 #include <filesystem>
 #include <iostream>
 
-namespace planar_arm {
+namespace arm_3dof {
 
 
 // Constructor 1 (typical): Fill config struct using Yaml
@@ -36,7 +36,7 @@ PinocchioSolver::PinocchioSolver(const std::string& yaml_filepath) {
     load_urdf(absolute_urdf_path.string());
 
     // Rationale: This check is fairly important, prevent runtime crashes from indexing out of bounds (ie. URDF has 6 joints instead of 3).
-    // Because of specific logic for a 3-DOF planar arm, only 3 DOFs are expected.
+    // Because of specific logic for a 3-DOF arm, only 3 DOFs are expected.
     if (model_.nq != 3) {
         throw std::runtime_error("[PinocchioSolver] This solver can only handle model_.nq == 3 currently. model_.nq of " + std::to_string(model_.nq) + " found. Does URDF have more than 3 DOF?");
     }
@@ -268,4 +268,4 @@ bool PinocchioSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAngl
     return false;
 }
 
-} // namespace planar_arm
+} // namespace arm_3dof

@@ -1,1 +1,1 @@
-# Planar Arm Kinematics
+# 3 DOF Arm Kinematics

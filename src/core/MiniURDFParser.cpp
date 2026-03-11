@@ -1,4 +1,4 @@
-#include "planar_arm_kinematics/core/MiniURDFParser.h"
+#include "3dof_arm_kinematics/core/MiniURDFParser.h"
 #include <stdexcept>
 #include <sstream>
 #include <cmath>
@@ -6,7 +6,7 @@
 
 using namespace tinyxml2;
 
-namespace planar_arm {
+namespace arm_3dof {
 
 std::vector<double> MiniURDFParser::parse_link_lengths(const std::string& urdf_filepath)
 {
@@ -61,4 +61,4 @@ std::vector<double> MiniURDFParser::parse_link_lengths(const std::string& urdf_f
     return lengths;
 }
 
-} // namespace planar_arm
+} // namespace arm_3dof

@@ -1,11 +1,11 @@
-#include "planar_arm_kinematics/ros/IkSubscriberNode.h"
-#include "planar_arm_kinematics/core/RobotModel.h"
-#include "planar_arm_kinematics/core/Types.h"
+#include "3dof_arm_kinematics/ros/IkSubscriberNode.h"
+#include "3dof_arm_kinematics/core/RobotModel.h"
+#include "3dof_arm_kinematics/core/Types.h"
 
-#include "planar_arm_kinematics/core/AnalyticalSolver.h"
-#include "planar_arm_kinematics/core/PinocchioSolver.h"
+#include "3dof_arm_kinematics/core/AnalyticalSolver.h"
+#include "3dof_arm_kinematics/core/PinocchioSolver.h"
 
-namespace planar_arm {
+namespace arm_3dof {
 
 IkSubscriberNode::IkSubscriberNode() : Node("ik_subscriber_node") {
     this->declare_parameter<std::string>("yaml_filepath", "");
@@ -74,4 +74,4 @@ void IkSubscriberNode::pose_callback(const geometry_msgs::msg::Pose2D::SharedPtr
 
 }
 
-} // namespace planar_arm
+} // namespace arm_3dof

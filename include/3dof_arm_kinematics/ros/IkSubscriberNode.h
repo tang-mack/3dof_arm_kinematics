@@ -3,9 +3,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose2_d.hpp>
 #include <memory>
-#include "planar_arm_kinematics/core/KinematicSolver.h"
+#include "3dof_arm_kinematics/core/KinematicSolver.h"
 
-namespace planar_arm {
+namespace arm_3dof {
 
 /// @brief Solves IK repeatedly, prints to screen
 class IkSubscriberNode : public rclcpp::Node {
@@ -23,4 +23,4 @@ private:
     JointAnglesRad previous_joints_;
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

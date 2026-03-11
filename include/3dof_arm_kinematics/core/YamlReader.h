@@ -4,7 +4,7 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-namespace planar_arm {
+namespace arm_3dof {
 
 class YamlReader {
 public:
@@ -43,4 +43,4 @@ private:
     YAML::Node root_node_;
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

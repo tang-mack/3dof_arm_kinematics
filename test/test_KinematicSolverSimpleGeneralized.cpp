@@ -7,18 +7,18 @@
 #include <cmath>
 
 // Include the Base Interface
-#include "planar_arm_kinematics/core/KinematicSolver.h"
+#include "3dof_arm_kinematics/core/KinematicSolver.h"
 
 // Include the solver backends
-#include "planar_arm_kinematics/core/AnalyticalSolver.h"
-#include "planar_arm_kinematics/core/PinocchioSolver.h"
+#include "3dof_arm_kinematics/core/AnalyticalSolver.h"
+#include "3dof_arm_kinematics/core/PinocchioSolver.h"
 
 // Fallback just in case the CMake macro fails to inject
 #ifndef PKG_SRC_DIR
 #define PKG_SRC_DIR "."
 #endif
 
-using namespace planar_arm;
+using namespace arm_3dof;
 
 // Helper
 inline double deg2rad(double deg) {return deg * M_PI / 180.0;}

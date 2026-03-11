@@ -1,16 +1,16 @@
 #pragma once
 
-#include "planar_arm_kinematics/core/KinematicSolver.h"
+#include "3dof_arm_kinematics/core/KinematicSolver.h"
 
-#include "planar_arm_kinematics/core/Types.h"
-#include "planar_arm_kinematics/core/RobotModel.h"
+#include "3dof_arm_kinematics/core/Types.h"
+#include "3dof_arm_kinematics/core/RobotModel.h"
 
-#include "planar_arm_kinematics/core/YamlReader.h"
+#include "3dof_arm_kinematics/core/YamlReader.h"
 #include <vector>
 #include <string>
 #include <optional>
 
-namespace planar_arm {
+namespace arm_3dof {
 
 struct AnalyticalSolverConfig {
     std::optional<std::string> urdf_filepath; // optional for semantic clarity: AnalyticalSolver works from yaml, or from urdf.
@@ -48,4 +48,4 @@ private:
 
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

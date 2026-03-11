@@ -3,9 +3,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose2_d.hpp>
 #include <memory>
-#include "planar_arm_kinematics/core/KinematicSolver.h"
+#include "3dof_arm_kinematics/core/KinematicSolver.h"
 
-namespace planar_arm {
+namespace arm_3dof {
 
 /// @brief Intake joint angles, run FK, publish end-effector to topic
 class FkPublisherNode : public rclcpp::Node {
@@ -22,4 +22,4 @@ private:
     std::unique_ptr<KinematicSolver> solver_; // Possible backends for KinematicSolver: AnalyticalSolver, PinocchioSolver
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "planar_arm_kinematics/core/Types.h"
+#include "3dof_arm_kinematics/core/Types.h"
 
-namespace planar_arm {
+namespace arm_3dof {
 
 /// @brief Base class API for the following Solver Backends: AnalyticalSolver, PinocchioSolver
 class KinematicSolver {
@@ -17,4 +17,4 @@ public:
 
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

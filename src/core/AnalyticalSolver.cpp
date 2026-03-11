@@ -1,12 +1,12 @@
 #include <cmath>
-#include "planar_arm_kinematics/core/AnalyticalSolver.h"
+#include "3dof_arm_kinematics/core/AnalyticalSolver.h"
 
 #include <algorithm> // for std::clamp
 #include <iostream>
-#include <planar_arm_kinematics/core/MiniURDFParser.h>
+#include <3dof_arm_kinematics/core/MiniURDFParser.h>
 #include <filesystem> // for getting URDF filepath
 
-namespace planar_arm {
+namespace arm_3dof {
 
 // ==============================================================================
 // 1. CONSTRUCTORS
@@ -199,4 +199,4 @@ bool AnalyticalSolver::inverse_kinematics(const Pose_XY_Yaw& ee_target, JointAng
 
 
 
-} // namespace planar_arm
+} // namespace arm_3dof

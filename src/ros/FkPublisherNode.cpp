@@ -1,12 +1,12 @@
-#include "planar_arm_kinematics/ros/FkPublisherNode.h"
-#include "planar_arm_kinematics/core/RobotModel.h"
+#include "3dof_arm_kinematics/ros/FkPublisherNode.h"
+#include "3dof_arm_kinematics/core/RobotModel.h"
 #include <chrono>
-#include "planar_arm_kinematics/core/AnalyticalSolver.h"
-#include "planar_arm_kinematics/core/PinocchioSolver.h"
+#include "3dof_arm_kinematics/core/AnalyticalSolver.h"
+#include "3dof_arm_kinematics/core/PinocchioSolver.h"
 
 using namespace std::chrono_literals;
 
-namespace planar_arm {
+namespace arm_3dof {
 
 FkPublisherNode::FkPublisherNode() : Node("fk_publisher_node") {
 
@@ -61,4 +61,4 @@ void FkPublisherNode::timer_callback() {
     publisher_->publish(msg);
 }
 
-} // namespace planar_arm
+} // namespace arm_3dof

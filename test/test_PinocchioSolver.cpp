@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "planar_arm_kinematics/core/PinocchioSolver.h"
+#include "3dof_arm_kinematics/core/PinocchioSolver.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,7 +9,7 @@
 #define PKG_SRC_DIR "."
 #endif
 
-using namespace planar_arm;
+using namespace arm_3dof;
 
 // Declared before the tests
 inline double deg2rad(double deg) {
@@ -289,7 +289,7 @@ std::vector<SolverTestConfig> GenerateTestConfigs() {
     SolverTestConfig real_yaml;
     real_yaml.test_variant_name = "RealYaml";
     real_yaml.use_yaml_constructor = true;
-    real_yaml.yaml_filepath = pkg_dir + "/include/planar_arm_kinematics/config/kinematics.yaml";
+    real_yaml.yaml_filepath = pkg_dir + "/include/3dof_arm_kinematics/config/kinematics.yaml";
 
     // Variant 2: The Mock Congruent Yaml
     SolverTestConfig mock_yaml;

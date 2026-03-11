@@ -1,19 +1,19 @@
 """
-Launch file for evaluating the Planar Arm Kinematics solvers.
+Launch file for evaluating the 3 DOF Arm Kinematics solvers.
 
 Convenient Examples:
 
 1. Launch with default settings (AnalyticalSolver, default angles):
-   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py
+   ros2 launch 3dof_arm_kinematics evaluate_kinematics.launch.py
 
 2. Explicitly launch using the Pinocchio numerical solver:
-   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver
+   ros2 launch 3dof_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver
 
 3. Explicitly launch using the Analytical solver:
-   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=AnalyticalSolver
+   ros2 launch 3dof_arm_kinematics evaluate_kinematics.launch.py solver_backend:=AnalyticalSolver
 
 4. Launch the Pinocchio solver and command custom joint angles:
-   ros2 launch planar_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver theta1:=1.0 theta2:=-0.5 theta3:=0.2
+   ros2 launch 3dof_arm_kinematics evaluate_kinematics.launch.py solver_backend:=PinocchioSolver theta1:=1.0 theta2:=-0.5 theta3:=0.2
 """
 
 import os
@@ -28,7 +28,7 @@ def generate_launch_description():
     # 1. Dynamically locate the yaml config file
     #    This MUST be inside generate_launch_description and before the Nodes
     config_file = os.path.join(
-        get_package_share_directory('planar_arm_kinematics'),
+        get_package_share_directory('3dof_arm_kinematics'),
         'config',
         'kinematics.yaml'
     )
@@ -42,7 +42,7 @@ def generate_launch_description():
 
     # 3. Define the FK Publisher Node
     fk_node = Node(
-        package='planar_arm_kinematics',
+        package='3dof_arm_kinematics',
         executable='fk_publisher_node',
         name='fk_publisher_node',
         parameters=[{
@@ -57,7 +57,7 @@ def generate_launch_description():
 
     # 4. Define the IK Subscriber Node
     ik_node = Node(
-        package='planar_arm_kinematics',
+        package='3dof_arm_kinematics',
         executable='ik_subscriber_node',
         name='ik_subscriber_node',
         parameters=[{

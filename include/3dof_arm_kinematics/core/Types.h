@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace planar_arm {
+namespace arm_3dof {
 
     // --- Define Data Types ---
     struct Pose_XY_Yaw {
@@ -22,4 +22,4 @@ namespace planar_arm {
         OTHER_ERROR
     };
     
-} // namespace planar_arm
+} // namespace arm_3dof

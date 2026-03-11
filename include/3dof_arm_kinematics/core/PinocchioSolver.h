@@ -1,15 +1,15 @@
 #pragma once
 
-#include "planar_arm_kinematics/core/KinematicSolver.h"
+#include "3dof_arm_kinematics/core/KinematicSolver.h"
 
-#include "planar_arm_kinematics/core/Types.h"
+#include "3dof_arm_kinematics/core/Types.h"
 #include <string>
 
 #include <pinocchio/fwd.hpp> // Pinocchio forward declarations (required before standard pinocchio includes)
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/data.hpp>
 
-namespace planar_arm {
+namespace arm_3dof {
 
 struct PinocchioSolverConfig {
     // Parameters from Yaml file
@@ -40,4 +40,4 @@ private:
     double max_reach_{0.0}; // [m] robot arm fully extended
 };
 
-} // namespace planar_arm
+} // namespace arm_3dof

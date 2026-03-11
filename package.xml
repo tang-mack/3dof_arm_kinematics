@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>planar_arm_kinematics</name>
+  <name>3dof_arm_kinematics</name>
   <version>0.0.0</version>
-  <description>A 3-DOF planar Forward and Inverse Kinematics Library with Launchable ROS Nodes</description>
+  <description>A 3-DOF Forward and Inverse Kinematics Testbed</description>
   <maintainer email="mt@todo.todo">mt</maintainer>
   <license>TODO: License declaration</license>
 
