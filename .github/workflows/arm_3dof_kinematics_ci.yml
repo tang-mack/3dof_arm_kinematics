@@ -14,6 +14,14 @@ jobs:
     container:
       image: ros:humble
 
+    # Source ROS for EVERY step automatically — fixes the tinyxml2Config.cmake lookup
+    defaults:
+      run:
+        shell: bash
+        # Every `run` step will prepend this before your commands
+    env:
+      ROS_DISTRO: humble
+
     steps:
     # 1. Checkout the repository into a ROS-compatible 'src' directory structure
     - name: Checkout Code
