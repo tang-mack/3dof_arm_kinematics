@@ -23,11 +23,11 @@ jobs:
       with:
         required-ros-distributions: humble
 
-    # 3. Install the exact dependencies from local setup instructions
+    # 3. Install the exact dependencies from your local setup instructions
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libyaml-cpp-dev libtinyxml2-dev ros-humble-pinocchio
+        sudo apt-get install -y libyaml-cpp-dev ros-humble-tinyxml2-vendor ros-humble-pinocchio
 
     # 4. Build the package (Mirrors 'kbuild' bash alias which essentially just did "colcon build --packages-select 3dof_arm_kinematics")
     - name: Build Workspace
