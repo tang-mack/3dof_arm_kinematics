@@ -13,9 +13,13 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
-find_package(tinyxml2_vendor REQUIRED) # Needed for MiniURDFParser class: fix Github CI issue
-find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
+# find_package(tinyxml2_vendor REQUIRED) # Needed for MiniURDFParser class: fix Github CI issue
+# find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
 find_package(pinocchio REQUIRED) # Needed for PinochioSolver class
+
+# tinyxml2: use pkg-config since libtinyxml2-dev doesn't ship a CMake config file
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(tinyxml2 REQUIRED IMPORTED_TARGET tinyxml2)
 
 # -----------------------------------------------------------
 # 1. Build the Pure C++ Core Library (Non-ROS related)/ Note: "core" folder contains non-ros related files, "ros" folder contains ros related files.
@@ -26,7 +30,12 @@ target_include_directories(core_kinematics PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 # Needed for classes: YamlReader, MiniURDFParser, PinocchioSolver
-target_link_libraries(core_kinematics PUBLIC yaml-cpp tinyxml2::tinyxml2 pinocchio::pinocchio)
+# target_link_libraries(core_kinematics PUBLIC yaml-cpp tinyxml2::tinyxml2 pinocchio::pinocchio)
+target_link_libraries(core_kinematics PUBLIC
+  yaml-cpp
+  PkgConfig::tinyxml2   # changed from tinyxml2::tinyxml2
+  pinocchio::pinocchio
+)
 
 # -----------------------------------------------------------
 # 2. Build the ROS Node Classes as Libraries (Component Ready)
