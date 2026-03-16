@@ -17,6 +17,7 @@
   <depend>yaml-cpp</depend>
 
   <!-- For MiniURDFParser -->
+  <!-- <depend>tinyxml2_vendor</depend> -->
   <depend>tinyxml2</depend>
 
   <!-- For PinocchioSolver -->
