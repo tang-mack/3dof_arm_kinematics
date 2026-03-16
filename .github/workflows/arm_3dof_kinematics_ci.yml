@@ -1,0 +1,62 @@
+name: 3-DOF Arm Kinematics CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+    # 1. Checkout the repository into a ROS-compatible 'src' directory structure
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        path: src/3dof_arm_kinematics
+
+    # 2. Install ROS 2 Humble
+    - name: Setup ROS 2 Environment
+      uses: ros-tooling/setup-ros@v0.7
+      with:
+        required-ros-distributions: humble
+
+    # 3. Install the exact dependencies from local setup instructions
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libyaml-cpp-dev libtinyxml2-dev ros-humble-pinocchio
+
+    # 4. Build the package (Mirrors 'kbuild' bash alias which essentially just did "colcon build --packages-select 3dof_arm_kinematics")
+    - name: Build Workspace
+      run: |
+        source /opt/ros/humble/setup.bash
+        colcon build --packages-select 3dof_arm_kinematics --event-handlers console_direct+
+      shell: bash
+
+    # 5. Run the GTests (Mirrors  'ktest' bash alias which essentially just did commands such as './build/3dof_arm_kinematics/test_AnalyticalSolver "$@";' )
+    - name: Run Unit Tests
+      run: |
+        source /opt/ros/humble/setup.bash
+        source install/setup.bash
+        colcon test --packages-select 3dof_arm_kinematics --event-handlers console_direct+
+        
+        # This command forces the workflow to fail and turn red if any GTest fails
+        colcon test-result --all
+      shell: bash
+
+    # 6. Integration Smoke Test (Mirrors your 'klaunch' alias)
+    - name: Launch File Smoke Test
+      run: |
+        source /opt/ros/humble/setup.bash
+        source install/setup.bash
+        
+        echo ">>> Launching evaluate_kinematics for 5 seconds..."
+        
+        # Run for 5 seconds, send SIGINT (Ctrl-C), and catch the expected 124 timeout code
+        timeout -s SIGINT 5 ros2 launch 3dof_arm_kinematics evaluate_kinematics.launch.py || [ $? -eq 124 ]
+        
+        echo ">>> Nodes started and shut down cleanly!"
+      shell: bash
