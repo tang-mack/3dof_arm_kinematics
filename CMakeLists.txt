@@ -13,6 +13,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED) # Needed for YamlReader class
+find_package(tinyxml2_vendor REQUIRED) # Needed for MiniURDFParser class: fix Github CI issue
 find_package(tinyxml2 REQUIRED) # Needed for MiniURDFParser class
 find_package(pinocchio REQUIRED) # Needed for PinochioSolver class
 
